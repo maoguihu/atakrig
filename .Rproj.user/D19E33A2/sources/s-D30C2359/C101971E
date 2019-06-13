@@ -5,14 +5,14 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "3382233991",
+    "hash" : "0",
     "id" : "C101971E",
     "lastKnownWriteTime" : 1560311479,
     "last_content_update" : 1560311479166,
-    "path" : "E:/AtoACokriging/Code/atakriging/NAMESPACE",
+    "path" : "E:/AtoACokriging/Code/atakrig/NAMESPACE",
     "project_path" : "NAMESPACE",
     "properties" : {
-        "cursorPosition" : "2,15",
+        "cursorPosition" : "22,15",
         "scrollLine" : "0"
     },
     "read_only" : false,

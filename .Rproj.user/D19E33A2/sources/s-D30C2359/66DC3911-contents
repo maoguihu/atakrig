@@ -4,7 +4,7 @@ Title: Area-to-area kriging
 Version: 0.9.0
 Author: Maogui Hu
 Maintainer: Maogui Hu <humg@lreis.ac.cn>
-Description: Point-scale variogram deconvolution from irregular/regular spatial support; simple, ordinary area-to-area (co)kriging and area-to-point (co)kriging.
+Description: Point-scale variogram deconvolution from irregular/regular spatial support; ordinary area-to-area (co)kriging and area-to-point (co)kriging.
 Imports: gstat, FNN, methods
 Suggests: raster, rgeos, doSNOW
 License: GPL (>= 2.0)
