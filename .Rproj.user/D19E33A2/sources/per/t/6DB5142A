@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1560425883874.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3374994643",
+    "id" : "6DB5142A",
+    "lastKnownWriteTime" : 1560425891,
+    "last_content_update" : 1560425891872,
+    "path" : "E:/AtoACokriging/Code/atakriging/demo/runoff.r",
+    "project_path" : "demo/runoff.r",
+    "properties" : {
+        "cursorPosition" : "2,13",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,32 @@
+import(gstat)
+import(FNN)
+import(methods)
+
+importFrom("graphics", "layout", "legend", "lines", "mtext", "par", "plot", "plot.new")
+    importFrom("methods", "is")
+    importFrom("stats", "median")
+    importFrom("utils", "hasName", "setTxtProgressBar", "txtProgressBar")
+
+export(
+  deconvPointVgm,
+  deconvPointCrossVariogram,
+  deconvPointVgmForCoKriging,
+  extractPointVgm,
+  autofitVgm,
+  plotDeconvVgm,
+
+  ataKriging,
+  ataKriging.cv,
+  ataCoKriging,
+  ataCoKriging.cv,
+  atpKriging,
+  atpCoKriging,
+
+  discretizeRaster,
+  discretizePolygon,
+  subsetDiscreteArea,
+  rbindDiscreteArea,
+
+  ataEnableCluster,
+  ataStopCluster
+)
