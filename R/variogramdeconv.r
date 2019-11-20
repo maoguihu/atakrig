@@ -29,8 +29,8 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
     }
 
     if(nrow(x[[id]]$areaValues) > maxSampleNum) {
-      warnings("Too many points for generating point-pairs. Only a sample will be used.")
-      indx <- sort(sample(nrow(x[[id]]$areaValues), maxSampleNum))
+      # warnings("Too many points for generating point-pairs. Only a sample will be used.")
+      indx <- sort(sysSampling(nrow(x[[id]]$areaValues), maxSampleNum))
       x[[id]] <- subsetDiscreteArea(x[[id]], x[[id]]$areaValues[indx,1])
     }
 
@@ -48,8 +48,8 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
     for (j in (i+1):length(varnames)) {
       id2 <- varnames[j]
       cat(sprintf("Deconvoluting cross-variogram between %s and %s ...\n", id1, id2))
-      id <- .crossName(id1,id2)
-      vgms[[id]] <- deconvPointCrossVariogram(x[[id1]], x[[id2]],
+      id <- crossName(id1,id2)
+      vgms[[id]] <- deconvPointCrossVgm(x[[id1]], x[[id2]],
                                                    vgms[[id1]]$pointVariogram,
                                                    vgms[[id2]]$pointVariogram,
                                                    model = model, maxIter = maxIter, fixed.range=fixed.range,
@@ -72,14 +72,14 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
     psill = matrix(NA, nrow = length(varnames), ncol = length(varnames))
     for (i in 1:length(varnames)) {
       for (j in i:length(varnames)) {
-        id = ifelse(i == j, varnames[i], .crossName(varnames[i], varnames[j]))
+        id = ifelse(i == j, varnames[i], crossName(varnames[i], varnames[j]))
         psill[i, j] = psill[j, i] = vgms[[id]]$pointVariogram[1,"psill"]
       }
     }
     psill = posdef(psill)
     for (i in 1:length(varnames)) {
       for (j in i:length(varnames)) {
-        id = ifelse(i == j, varnames[i], .crossName(varnames[i], varnames[j]))
+        id = ifelse(i == j, varnames[i], crossName(varnames[i], varnames[j]))
         vgms[[id]]$pointVariogram[1,"psill"] = psill[i, j]
       }
     }
@@ -103,7 +103,7 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
 #   fixed.range: variogram range fixed or not.
 #	  longlat: indicator whether coordinates are longitude/latitude
 #   maxSampleNum: to save memory and to reduce calculation time, for large number of discretized areas,
-#      only a number (maxSampleNum) of random sample will be used.
+#      only a number (maxSampleNum) of samples will be used.
 #   fig: whether to plot deconvoluted variogram.
 # Output:
 #   list(pointVariogram,             # deconvoluted point variogram.
@@ -111,19 +111,22 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
 #        experientialAreaVariogram,  # experiential area variogram from area centroids.
 #        regularizedAreaVariogram    # regularized area variogram from discretized area points and point variogram.
 #        ).
-deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.range=NA, longlat=FALSE, maxSampleNum=100, fig=TRUE, ...) {
+deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.range=NA, longlat=FALSE,
+                           maxSampleNum=100, fig=TRUE, ...) {
   # Pierre Goovaerts suggested a different weight (similar to fit.method = 2) in fitting the experimental variogram.
 
-  if(!hasName(x, "discretePoints")) x$discretePoints <- cbind(x$areaValues[,1:3], data.frame(weight=rep(1,nrow(x$areaValues))))
+  if(!hasName(x, "discretePoints"))
+    x$discretePoints <- cbind(x$areaValues[,1:3], data.frame(weight=rep(1,nrow(x$areaValues))))
 
   if(nrow(x$areaValues) > maxSampleNum) {
-    warnings("Too many points for generating point-pairs. Only a sample will be used.")
-    indx <- sort(sample(nrow(x$areaValues), maxSampleNum))
+    # warnings("Too many points for generating point-pairs. Only a sample will be used.")
+    indx <- sort(sysSampling(nrow(x$areaValues), maxSampleNum))
     x <- subsetDiscreteArea(x, x$areaValues[indx,1])
   }
 
   ## 1. area scale semivariogram
-  areaSvmodel <- autofitVgm(x$areaValues, fit.nugget=fit.nugget, fixed.range=fixed.range, longlat=longlat, model=model, ...)
+  # areaSvmodel <- autofitVgm(x$areaValues, fit.nugget=fit.nugget, fixed.range=fixed.range, longlat=longlat, model=model, ...)
+  areaSvmodel <- autofitVgm(x$areaValues, fit.nugget=fit.nugget, longlat=longlat, model=model, ...)
   if(is.null(areaSvmodel)) {
     cat("Fitting area-scale variogram model failed!\n")
     return(NULL)
@@ -147,49 +150,18 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
   # distance between area centroids
   areaDistByCentroid <- spDists(as.matrix(x$areaValues[,2:3]), longlat=longlat)
 
-  # entry index for each area
-  uId <- sort(unique(x$discretePoints[,1]))
-
-  # distances between discretized area points
-  hasCluster <- !is.null(getOption("ataKrigCluster"))
-  if(!hasCluster) {
-    areaDistByPts <- list()
-    for(i in 1:length(uId)) {
-      areaDistByPts[[i]] <- list()
-      areaIndexI <- which(x$discretePoints[,1] == uId[i])
-      for(j in i:length(uId)) {
-        areaIndexJ <- which(x$discretePoints[,1] == uId[j])
-        areaDistByPts[[i]][[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
-                                           as.matrix(x$discretePoints[areaIndexJ,2:3]),
-                                           longlat=longlat)
-      }
-    }
-  } else {
-    areaDistByPts <- foreach(i = 1:length(uId), .packages = "sp") %dopar%  {
-      areaDistByPts <- list()
-      areaIndexI <- which(x$discretePoints[,1] == uId[i])
-      for(j in i:length(uId)) {
-        areaIndexJ <- which(x$discretePoints[,1] == uId[j])
-        areaDistByPts[[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
-                                           as.matrix(x$discretePoints[areaIndexJ,2:3]),
-                                           longlat=longlat)
-      }
-      return(areaDistByPts)
-    }
-    ataClusterClearObj()
-  }
-
   ## 2. initialize
   pointSvmodel <- areaSvmodel$model
   dgGroup <- areaSvmodel$bins
   gamaExp <- variogramLine(areaSvmodel$model, covariance=FALSE, dist_vector=dgGroup$dist)$gamma
   s2Exp <- areaSvmodel$model$psill
 
+  svAreaCloudByPointVgmInit(x$discretePoints, areaDistByCentroid, longlat)
+
   ## 3. regularize
-  gamaReg <- .calcSvDgGroup(.calcSvCloudAreaByPointVgm(x$discretePoints, pointSvmodel,
-                                         areaDistByCentroid = areaDistByCentroid,
-                                         areaDistByPts = areaDistByPts),
-                           ngroup = ngroup, rd = rd)$gamma
+  gamaReg <- calcSvDgGroup(svAreaCloudByPointVgm(pointSvmodel), ngroup = ngroup, rd = rd)$gamma
+  # gamaReg <- calcSvDgGroup(calcSvAreaCloudByPointVgm(x$discretePoints, pointSvmodel, areaDistByCentroid, areaDistByPts),
+  #                           ngroup = ngroup, rd = rd)$gamma
 
   ## 4. difference of areal regularized and experimental semivariogram
   D0 <- mean(abs(gamaReg-gamaExp)/gamaExp)
@@ -208,11 +180,13 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
     ## 6. update regularized semivariance
     if(!bNewW)
       wl <- 1 + (gamaExp-gamaOpt)/(s2Exp*sqrt(iter))
-    gPoint <- variogramLine(pointSvmodelOpt, covariance=FALSE, dist_vector=dgGroup$dist)$gamma * wl
+    # gPoint <- variogramLine(pointSvmodelOpt, covariance=FALSE, dist_vector=dgGroup$dist)$gamma * wl
+    gPoint <- variogramLineSimple(pointSvmodelOpt, dgGroup$dist, FALSE)$gamma * wl
 
     ## 7. fit new point scale semivariogram
     dgGroup$gamma <- gPoint
-    pointSvmodel <- .fitPointVgm(dgGroup, pointSvmodel[nrow(pointSvmodel),1], fit.nugget=fit.nugget, fixed.range=fixed.range)$model
+    pointSvmodel <- fitPointVgm(dgGroup, pointSvmodel[nrow(pointSvmodel),1],
+                                fit.nugget=fit.nugget, fixed.range=fixed.range)$model
     if(is.null(pointSvmodel)) {
       pointSvmodel <- pointSvmodelOpt
       status <- 0
@@ -221,10 +195,9 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
     }
 
     ## 8. regularize
-    gamaReg <- .calcSvDgGroup(.calcSvCloudAreaByPointVgm(x$discretePoints, pointSvmodel,
-                                           areaDistByCentroid = areaDistByCentroid,
-                                           areaDistByPts = areaDistByPts),
-                             ngroup = ngroup, rd = rd)$gamma
+    # dgScatter <- calcSvAreaCloudByPointVgm(x$discretePoints, pointSvmodel, areaDistByCentroid, areaDistByPts)
+    dgScatter <- svAreaCloudByPointVgm(pointSvmodel)
+    gamaReg <- calcSvDgGroup(dgScatter, ngroup = ngroup, rd = rd)$gamma
 
     ## 9. difference of areal regularized and experimental semivariogram
     D1 <- mean(abs(gamaReg-gamaExp)/gamaExp)
@@ -258,7 +231,9 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
       wl <- 1 + (wl-1)/2
       bNewW <- TRUE
     }
-  }
+  } # end of iteration
+  svAreaCloudByPointVgmEnd()
+
   if(iter == maxIter) {
     status <- 4
   }
@@ -278,7 +253,7 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
 }
 
 
-## deconvPointCrossVariogram: Point scale cross-variogram deconvolution. ----
+## deconvPointCrossVgm: Point scale cross-variogram deconvolution. ----
 # Input:
 #   x, y: discretized areas, list(discretePoints, areaValues):
 #       areaValues: values of areas, data.frame(areaId,centx,centy,value).
@@ -288,7 +263,7 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
 #   maxIter: max iteration number of deconvolution.
 #	  longlat: indicator whether coordinates are longitude/latitude.
 #   maxSampleNum: to save memory and to reduce calculation time, for large number of discretized areas,
-#      only a number (maxSampleNum) of random sample will be used.
+#      only a number (maxSampleNum) of samples will be used.
 #   fig: whether to plot deconvoluted variogram.
 # Output:
 #   list(pointVariogram,             # deconvoluted point variogram.
@@ -296,25 +271,28 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
 #        experientialAreaVariogram,  # experiential area variogram from area centroids.
 #        regularizedAreaVariogram    # regularized area variogram from discretized area points and point variogram.
 #        ).
-deconvPointCrossVariogram <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.range=NA,
-                                           longlat=FALSE, maxSampleNum=100, fig=TRUE, ...) {
+deconvPointCrossVgm <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter=100, fit.nugget=FALSE,
+                                      fixed.range=NA, longlat=FALSE, maxSampleNum=100, fig=TRUE, ...) {
 
-  if(!hasName(x, "discretePoints")) x$discretePoints <- cbind(x$areaValues[,1:3], data.frame(weight=rep(1,nrow(x$areaValues))))
-  if(!hasName(y, "discretePoints")) y$discretePoints <- cbind(y$areaValues[,1:3], data.frame(weight=rep(1,nrow(y$areaValues))))
+  if(!hasName(x, "discretePoints"))
+    x$discretePoints <- cbind(x$areaValues[,1:3], data.frame(weight=rep(1,nrow(x$areaValues))))
+  if(!hasName(y, "discretePoints"))
+    y$discretePoints <- cbind(y$areaValues[,1:3], data.frame(weight=rep(1,nrow(y$areaValues))))
 
   if(nrow(x$areaValues) > maxSampleNum) {
-    warnings("Too many points for generating point-pairs. Only a sample will be used.")
-    indx <- sort(sample(nrow(x$areaValues), maxSampleNum))
+    # warnings("Too many points for generating point-pairs. Only a sample will be used.")
+    indx <- sort(sysSampling(nrow(x$areaValues), maxSampleNum))
     x <- subsetDiscreteArea(x, x$areaValues[indx,1])
   }
   if(nrow(y$areaValues) > maxSampleNum) {
-    warnings("Too many points for generating point-pairs. Only a sample will be used.")
-    indx <- sort(sample(nrow(y$areaValues), maxSampleNum))
+    # warnings("Too many points for generating point-pairs. Only a sample will be used.")
+    indx <- sort(sysSampling(nrow(y$areaValues), maxSampleNum))
     y <- subsetDiscreteArea(y, y$areaValues[indx,1])
   }
 
   ## 1. area scale cross-semivariogram
-  areaCrossVgm <- autofitVgm(x$areaValues, y$areaValues, fit.nugget=fit.nugget, fixed.range=fixed.range, longlat=longlat, model=model, ...)
+  # areaCrossVgm <- autofitVgm(x$areaValues, y$areaValues, fit.nugget=fit.nugget, fixed.range=fixed.range, longlat=longlat, model=model, ...)
+  areaCrossVgm <- autofitVgm(x$areaValues, y$areaValues, fit.nugget=fit.nugget, longlat=longlat, model=model, ...)
   if(is.null(areaCrossVgm$model)) {
     cat("Fitting area-scale cross-variogram model failed!\n")
     return(NULL)
@@ -337,82 +315,87 @@ deconvPointCrossVariogram <- function(x, y, xPointVgm, yPointVgm, model="Exp", m
   y$areaValues <- y$areaValues[order(y$areaValues$areaId),]
 
   # distance between area centroids
-  areaDistByCentroid12 <- spDists(as.matrix(x$areaValues[,2:3]), as.matrix(y$areaValues[,2:3]), longlat=longlat)
+  areaDistByCentroidXY <- spDists(as.matrix(x$areaValues[,2:3]), as.matrix(y$areaValues[,2:3]), longlat=longlat)
 
   # entry index for each area
   uId1 <- sort(unique(x$discretePoints[,1]))
   uId2 <- sort(unique(y$discretePoints[,1]))
 
   # distances between discretized area points
-  hasCluster <- !is.null(getOption("ataKrigCluster"))
+  hasCluster <- FALSE #ataIsClusterEnabled() # parallel version has some problem currently!
   if(!hasCluster) {
-    areaDistByPts1 <- list()
+    areaDistByPtsX <- list()
+    areaWeightByPtsX <- list()
     for(i in 1:length(uId1)) {
-      areaDistByPts1[[i]] <- list()
       areaIndexI <- which(x$discretePoints[,1] == uId1[i])
-      for(j in i:length(uId1)) {
-        areaIndexJ <- which(x$discretePoints[,1] == uId1[j])
-        areaDistByPts1[[i]][[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
-                                            as.matrix(x$discretePoints[areaIndexJ,2:3]),
-                                            longlat=longlat)
-      }
+      areaDistByPtsX[[i]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
+                                     as.matrix(x$discretePoints[areaIndexI,2:3]), longlat=longlat)
+      areaWeightByPtsX[[i]] <- outer(x$discretePoints[areaIndexI,4], x$discretePoints[areaIndexI,4])
     }
-    areaDistByPts2 <- list()
+
+    areaDistByPtsY <- list()
+    areaWeightByPtsY <- list()
     for(i in 1:length(uId2)) {
-      areaDistByPts2[[i]] <- list()
       areaIndexI <- which(y$discretePoints[,1] == uId2[i])
-      for(j in i:length(uId2)) {
-        areaIndexJ <- which(y$discretePoints[,1] == uId2[j])
-        areaDistByPts2[[i]][[j]] <- spDists(as.matrix(y$discretePoints[areaIndexI,2:3]),
-                                            as.matrix(y$discretePoints[areaIndexJ,2:3]),
-                                            longlat=longlat)
-      }
+      areaDistByPtsY[[i]] <- spDists(as.matrix(y$discretePoints[areaIndexI,2:3]),
+                                     as.matrix(y$discretePoints[areaIndexI,2:3]), longlat=longlat)
+      areaWeightByPtsY[[i]] <- outer(y$discretePoints[areaIndexI,4], y$discretePoints[areaIndexI,4])
     }
-    areaDistByPts12 <- list()
+
+    areaDistByPtsXY <- list()
+    areaWeightByPtsXY <- list()
     for(i in 1:length(uId1)) {
-      areaDistByPts12[[i]] <- list()
+      areaDistByPtsXY[[i]] <- list()
+      areaWeightByPtsXY[[i]] <- list()
       areaIndexI <- which(x$discretePoints[,1] == uId1[i])
       for(j in 1:length(uId2)) {
         areaIndexJ <- which(y$discretePoints[,1] == uId2[j])
-        areaDistByPts12[[i]][[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
-                                             as.matrix(y$discretePoints[areaIndexJ,2:3]),
-                                             longlat=longlat)
+        areaDistByPtsXY[[i]][[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
+                                             as.matrix(y$discretePoints[areaIndexJ,2:3]), longlat=longlat)
+        areaWeightByPtsXY[[i]][[j]] <- outer(x$discretePoints[areaIndexI,4], y$discretePoints[areaIndexJ,4])
       }
     }
   } else {
-    areaDistByPts1 <- foreach(i = 1:length(uId1), .packages = "sp") %dopar% {
-      areaDistByPts1 <- list()
+    ll <- foreach(i = 1:length(uId1), .packages = "sp") %dopar% {
       areaIndexI <- which(x$discretePoints[,1] == uId1[i])
-      for(j in i:length(uId1)) {
-        areaIndexJ <- which(x$discretePoints[,1] == uId1[j])
-        areaDistByPts1[[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
-                                            as.matrix(x$discretePoints[areaIndexJ,2:3]),
-                                            longlat=longlat)
-      }
-      return(areaDistByPts1)
+      areaDistByPtsX <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
+                                as.matrix(x$discretePoints[areaIndexI,2:3]), longlat=longlat)
+      areaWeightByPtsX <- outer(x$discretePoints[areaIndexI,4], x$discretePoints[areaIndexI,4])
+      return(list(areaDistByPtsX, areaWeightByPtsX))
     }
-    areaDistByPts2 <- foreach(i = 1:length(uId2), .packages = "sp") %dopar% {
-      areaDistByPts2 <- list()
+    areaDistByPtsX <- ll[[1]]
+    areaWeightByPtsX <- ll[[2]]
+
+    ll <- foreach(i = 1:length(uId2), .packages = "sp") %dopar% {
       areaIndexI <- which(y$discretePoints[,1] == uId2[i])
-      for(j in i:length(uId2)) {
-        areaIndexJ <- which(y$discretePoints[,1] == uId2[j])
-        areaDistByPts2[[j]] <- spDists(as.matrix(y$discretePoints[areaIndexI,2:3]),
-                                            as.matrix(y$discretePoints[areaIndexJ,2:3]),
-                                            longlat=longlat)
-      }
-      return(areaDistByPts2)
+      areaDistByPtsY <- spDists(as.matrix(y$discretePoints[areaIndexI,2:3]),
+                                as.matrix(y$discretePoints[areaIndexI,2:3]), longlat=longlat)
+      areaWeightByPtsY <- outer(y$discretePoints[areaIndexI,4], y$discretePoints[areaIndexI,4])
+
+      return(list(areaDistByPtsY, areaWeightByPtsY))
     }
-    areaDistByPts12 <- foreach(i = 1:length(uId1), .packages = "sp") %dopar% {
-      areaDistByPts12 <- list()
+    areaDistByPtsY <- ll[[1]]
+    areaWeightByPtsY <- ll[[2]]
+
+    ll <- foreach(i = 1:length(uId1), .packages = "sp") %dopar% {
+      areaDistByPtsXY <- list()
+      areaWeightByPtsXY <- list()
       areaIndexI <- which(x$discretePoints[,1] == uId1[i])
       for(j in 1:length(uId2)) {
         areaIndexJ <- which(y$discretePoints[,1] == uId2[j])
-        areaDistByPts12[[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
-                                             as.matrix(y$discretePoints[areaIndexJ,2:3]),
-                                             longlat=longlat)
+        areaDistByPtsXY[[j]] <- spDists(as.matrix(x$discretePoints[areaIndexI,2:3]),
+                                        as.matrix(y$discretePoints[areaIndexJ,2:3]), longlat=longlat)
+        areaWeightByPtsXY[[j]] <- outer(x$discretePoints[areaIndexI,4], y$discretePoints[areaIndexJ,4])
       }
-      return(areaDistByPts12)
+      return(list(areaDistByPtsXY, areaWeightByPtsXY))
     }
+    areaDistByPtsXY <- list()
+    areaWeightByPtsXY <- list()
+    for (i in 1:length(ll)) {
+      areaDistByPtsXY[[i]] <- ll[[i]][[1]]
+      areaWeightByPtsXY[[i]] <- ll[[i]][[2]]
+    }
+    rm(ll)
     ataClusterClearObj()
   }
 
@@ -422,11 +405,17 @@ deconvPointCrossVariogram <- function(x, y, xPointVgm, yPointVgm, model="Exp", m
   gamaExp <- variogramLine(areaCrossVgm$model, covariance=FALSE, dist_vector=dgGroup$dist)$gamma
   s2Exp <- areaCrossVgm$model$psill
 
+  crossSvAreaCloudByPointVgmInit(x$discretePoints, y$discretePoints, xPointVgm, yPointVgm,
+                                 areaDistByCentroidXY, areaDistByPtsX, areaDistByPtsY, areaDistByPtsXY,
+                                 areaWeightByPtsX, areaWeightByPtsY, areaWeightByPtsXY)
+
   ## 3. regularize
-  crossDgScatter <- .calcCrossSvCloudAreaByPointVgm(x$discretePoints, y$discretePoints, xPointVgm, yPointVgm,
-                                                   xyPointCrossVgm = pointCrossVgm, areaDistByCentroid12,
-                                                   areaDistByPts1, areaDistByPts2, areaDistByPts12)
-  gamaReg <- .calcSvDgGroup(crossDgScatter, ngroup = ngroup, rd = rd)$gamma
+  # crossDgScatter <- calcCrosssvAreaCloudByPointVgm(x$discretePoints, y$discretePoints, xPointVgm, yPointVgm,
+  #                                                  xyPointCrossVgm = pointCrossVgm, areaDistByCentroidXY,
+  #                                                  areaDistByPtsX, areaDistByPtsY, areaDistByPtsXY)
+  crossDgScatter <- crossSvAreaCloudByPointVgm(pointCrossVgm)
+
+  gamaReg <- calcSvDgGroup(crossDgScatter, ngroup = ngroup, rd = rd)$gamma
 
   ## 4. difference of areal regularized and experimental semivariogram
   D0 <- mean(abs(gamaReg-gamaExp)/gamaExp)
@@ -449,7 +438,7 @@ deconvPointCrossVariogram <- function(x, y, xPointVgm, yPointVgm, model="Exp", m
 
     ## 7. fit new point scale semivariogram
     dgGroup$gamma <- gPoint
-    pointCrossVgm <- .fitPointVgm(dgGroup, pointCrossVgm[nrow(pointCrossVgm),1], fit.nugget=fit.nugget, fixed.range=fixed.range, ...)$model
+    pointCrossVgm <- fitPointVgm(dgGroup, pointCrossVgm[nrow(pointCrossVgm),1], fit.nugget=fit.nugget, fixed.range=fixed.range, ...)$model
     if(is.null(pointCrossVgm)) {
       pointCrossVgm <- pointCrossVgmOpt
       status <- 0
@@ -458,10 +447,11 @@ deconvPointCrossVariogram <- function(x, y, xPointVgm, yPointVgm, model="Exp", m
     }
 
     ## 8. regularize
-    crossDgScatter <- .calcCrossSvCloudAreaByPointVgm(x$discretePoints, y$discretePoints, xPointVgm, yPointVgm,
-                                                     xyPointCrossVgm = pointCrossVgm, areaDistByCentroid12,
-                                                     areaDistByPts1, areaDistByPts2, areaDistByPts12)
-    gamaReg <- .calcSvDgGroup(crossDgScatter, ngroup = ngroup, rd = rd)$gamma
+    # crossDgScatter <- calcCrosssvAreaCloudByPointVgm(x$discretePoints, y$discretePoints, xPointVgm, yPointVgm,
+    #                                                  xyPointCrossVgm = pointCrossVgm, areaDistByCentroidXY,
+    #                                                  areaDistByPtsX, areaDistByPtsY, areaDistByPtsXY)
+    crossDgScatter <- crossSvAreaCloudByPointVgm(pointCrossVgm)
+    gamaReg <- calcSvDgGroup(crossDgScatter, ngroup = ngroup, rd = rd)$gamma
 
     ## 9. difference of areal regularized and experimental semivariogram
     D1 <- mean(abs(gamaReg-gamaExp)/gamaExp)
@@ -496,6 +486,8 @@ deconvPointCrossVariogram <- function(x, y, xPointVgm, yPointVgm, model="Exp", m
       bNewW <- TRUE
     }
   }
+  crossSvAreaCloudByPointVgmEnd()
+
   if(iter == maxIter) {
     status <- 4
   }
@@ -515,8 +507,8 @@ deconvPointCrossVariogram <- function(x, y, xPointVgm, yPointVgm, model="Exp", m
 
 
 ## plotDeconvVgm: Plot deconvoluted point variogram. ----
-plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=TRUE) {
-  .plotDeconvVgm <- function(v, main) {
+plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=FALSE) {
+  plotDVgm <- function(v, main) {
     xlim <- c(0, 1.1 * max(v$experientialAreaVariogram$dist))
     xx <- seq(0, xlim[2], length=100)
     yy <- variogramLine(v$areaVariogram, covariance=FALSE, dist_vector=xx)$gamma
@@ -540,7 +532,7 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
   par(oma=c(1, 1, 2.5, 0)) #  add an outer margin to the top of the graph
 
   if (hasName(v, "regularizedAreaVariogram")) {
-    .plotDeconvVgm(v, main = "")
+    plotDVgm(v, main = "")
     if(is.null(posx)) posx <- "bottomright"
   } else {
     m0 <- (sqrt(1+8*length(v))-1)/2
@@ -552,11 +544,11 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
     layout(mat=m)
 
     for (i in 1:m0) {
-      .plotDeconvVgm(v[[n[i]]], main = n[i])
+      plotDVgm(v[[n[i]]], main = n[i])
       for (j in 1:m0) {
         if(j > i) {
-          n2 <- .crossName(n[i],n[j])
-          .plotDeconvVgm(v[[n2]], main = n2)
+          n2 <- crossName(n[i],n[j])
+          plotDVgm(v[[n2]], main = n2)
         }
       }
     }
@@ -593,14 +585,14 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
 #   model: as.character(vgm()$short)[-1]
 autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c("Sph","Exp","Gau"),
                        fit.nugget=TRUE, fixed.range=NA, longlat=FALSE, fig=FALSE, ...) {
-  areaSvCloud <- .calcSvCloud(x[,2:4], y[,2:4], longlat=longlat)
+  areaSvCloud <- calcSvCloud(x[,2:4], y[,2:4], longlat=longlat)
   mSel <- NULL
   for (i in 1:length(ngroup)) {
     for(j in 1:length(rd)) {
-      areaVgm <- .calcSvDgGroup(areaSvCloud, ngroup=ngroup[i], rd=rd[j])
+      areaVgm <- calcSvDgGroup(areaSvCloud, ngroup=ngroup[i], rd=rd[j])
       if(nrow(areaVgm) < 10) next
 
-      m <- .fitPointVgm(vgmdef=areaVgm, model=model, fit.nugget=fit.nugget, fixed.range=fixed.range, ...)
+      m <- fitPointVgm(vgmdef=areaVgm, model=model, fit.nugget=fit.nugget, fixed.range=fixed.range, ...)
       if(is.null(m$model)) next
 
       m$ngroup <- ngroup[i]
@@ -618,9 +610,9 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .fitPointVgm: [internal use only] Fit variogram for points. ----
-#      vgmdef generted by .calcSvDgGroup()
-.fitPointVgm <- function(vgmdef, model=c("Sph","Exp","Gau"), fit.nugget=TRUE, fixed.range=NA, fig=FALSE, ...) {
+## fitPointVgm: [internal use only] Fit variogram for points. ----
+#      vgmdef generted by calcSvDgGroup()
+fitPointVgm <- function(vgmdef, model=c("Sph","Exp","Gau"), fit.nugget=TRUE, fixed.range=NA, fig=FALSE, ...) {
   init_nugget <- ifelse(!fit.nugget, 0, min(vgmdef$gamma))
   init_range <- 0.1*(max(vgmdef$dist)-min(vgmdef$dist))   # 0.10 times the length of the central axis through the area
   init_sill <- mean(c(max(vgmdef$gamma), median(vgmdef$gamma)))
@@ -692,26 +684,29 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .calcSvCloudAreaByPointVgm: [internal use only] Variogram scatter for areas according to point scale variogram model. ----
+## calcSvAreaCloudByPointVgm: [internal use only] Variogram scatter for areas according to point scale variogram model. ----
 # discretePoints: discretized points of areas, four columns: areaId,x,y,weight.
 # ptVgmModel: point-scale semivariogram (gstat vgm).
-.calcSvCloudAreaByPointVgm <- function(discretePoints, ptVgmModel, areaDistByCentroid, areaDistByPts) {
+calcSvAreaCloudByPointVgm <- function(discretePoints, ptVgmModel, areaDistByCentroid, areaDistByPts) {
   uId <- sort(unique(discretePoints[,1]))
 
-  hasCluster <- !is.null(getOption("ataKrigCluster"))
+  hasCluster <- ataIsClusterEnabled()
   if(!hasCluster) {
     dg <- matrix(nrow=length(uId)*(length(uId)-1)/2, ncol=2)
     n <- 1
     for(i in 1:(length(uId)-1)) {
-      mSvar <- variogramLine(ptVgmModel, covariance=FALSE, dist_vector=areaDistByPts[[i]][[i]])
+      # mSvar <- variogramLine(ptVgmModel, covariance=FALSE, dist_vector=areaDistByPts[[i]][[i]])
+      mSvar <- variogramLineSimple(ptVgmModel, areaDistByPts[[i]][[i]], FALSE)
       areaIndexI <- which(discretePoints[,1] == uId[i])
       g11 <- sum(outer(discretePoints[areaIndexI,4], discretePoints[areaIndexI,4]) * mSvar)
       for(j in (i+1):length(uId)) {
-        mSvar <- variogramLine(ptVgmModel, covariance=FALSE, dist_vector=areaDistByPts[[j]][[j]])
+        # mSvar <- variogramLine(ptVgmModel, covariance=FALSE, dist_vector=areaDistByPts[[j]][[j]])
+        mSvar <- variogramLineSimple(ptVgmModel, areaDistByPts[[j]][[j]], FALSE)
         areaIndexJ <- which(discretePoints[,1] == uId[j])
         g22 <- sum(outer(discretePoints[areaIndexJ,4],discretePoints[areaIndexJ,4]) * mSvar)
 
-        mSvar <- variogramLine(ptVgmModel, covariance=FALSE, dist_vector=areaDistByPts[[i]][[j]])
+        # mSvar <- variogramLine(ptVgmModel, covariance=FALSE, dist_vector=areaDistByPts[[i]][[j]])
+        mSvar <- variogramLineSimple(ptVgmModel, areaDistByPts[[i]][[j]], FALSE)
         g12 <- sum(outer(discretePoints[areaIndexI,4],discretePoints[areaIndexJ,4]) * mSvar)
 
         g <- g12 - (g11+g22)/2
@@ -752,9 +747,9 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .calcSvCloud: [internal use only] Variogram scatter for points. ----
+## calcSvCloud: [internal use only] Variogram scatter for points. ----
 #      pts: data.frame(ptx,pty,value)
-.calcSvCloud <- function(x, y=x, longlat=FALSE) {
+calcSvCloud <- function(x, y=x, longlat=FALSE) {
   distM <- spDists(as.matrix(x[,1:2]), as.matrix(y[,1:2]), longlat=longlat)
   gammaM <- distM * NA
   for(i in 1:nrow(x)) {
@@ -772,8 +767,8 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .calcSvDgGroup: [internal use only] Group variogram scatter (experience variogram). ----
-.calcSvDgGroup <- function(dgScatter, ngroup=12, rd=0.66, removeOdd=FALSE) {
+## calcSvDgGroup: [internal use only] Group variogram scatter (experience variogram). ----
+calcSvDgGroup <- function(dgScatter, ngroup=12, rd=0.66, removeOdd=FALSE) {
 	# if(removeOdd) {
 	# 	gmn <- mean(dgScatter$g)
 	# 	gst <- sd(dgScatter$g)
@@ -822,54 +817,54 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .calcCrossSvCloudAreaByPointVgm: [internal use only] Cross-variogram scatter for areas according to point scale variogram model. ----
+## calcCrosssvAreaCloudByPointVgm: [internal use only] Cross-variogram scatter for areas according to point scale variogram model. ----
 # x, y: discrete points of areas, data.frame(areaId,ptx,pty,weight).
 # xPointVgm, yPointVgm, xyPointCrossVgm: point-scale variogram or cross-variogram (gstat vgm).
-.calcCrossSvCloudAreaByPointVgm <- function(x, y, xPointVgm, yPointVgm, xyPointCrossVgm,
-                                       areaDistByCentroid12, areaDistByPts1, areaDistByPts2, areaDistByPts12) {
+calcCrosssvAreaCloudByPointVgm <- function(x, y, xPointVgm, yPointVgm, xyPointCrossVgm,
+                                       areaDistByCentroidXY, areaDistByPtsX, areaDistByPtsY, areaDistByPtsXY) {
   uId1 <- sort(unique(x[,1]))
   uId2 <- sort(unique(y[,1]))
 
-  hasCluster <- !is.null(getOption("ataKrigCluster"))
+  hasCluster <- ataIsClusterEnabled()
 
   if(!hasCluster) {
     dg <- matrix(nrow=length(uId1)*length(uId2), ncol=2)
     n <- 1
     for(i in 1:length(uId1)) {
-      mSvar <- variogramLine(xPointVgm, covariance=FALSE, dist_vector=areaDistByPts1[[i]][[i]])
+      mSvar <- variogramLine(xPointVgm, covariance=FALSE, dist_vector=areaDistByPtsX[[i]])
       areaIndexI <- which(x[,1] == uId1[i])
       g11 <- sum(outer(x[areaIndexI,4], x[areaIndexI,4]) * mSvar)
       for(j in 1:length(uId2)) {
-        mSvar <- variogramLine(yPointVgm, covariance=FALSE, dist_vector=areaDistByPts2[[j]][[j]])
+        mSvar <- variogramLine(yPointVgm, covariance=FALSE, dist_vector=areaDistByPtsY[[j]])
         areaIndexJ <- which(y[,1] == uId2[j])
         g22 <- sum(outer(y[areaIndexJ,4],y[areaIndexJ,4]) * mSvar)
 
-        mSvar <- variogramLine(xyPointCrossVgm, covariance=FALSE, dist_vector=areaDistByPts12[[i]][[j]])
+        mSvar <- variogramLine(xyPointCrossVgm, covariance=FALSE, dist_vector=areaDistByPtsXY[[i]][[j]])
         g12 <- sum(outer(x[areaIndexI,4],y[areaIndexJ,4]) * mSvar)
 
         g <- g12 - (g11+g22)/2
-        dg[n,] <- c(areaDistByCentroid12[i,j], g)
+        dg[n,] <- c(areaDistByCentroidXY[i,j], g)
         n <- n+1
       }
     }
   } else {
     dg <- foreach(i = 1:length(uId1)) %dopar% {
-      mSvar <- variogramLine(xPointVgm, covariance=FALSE, dist_vector=areaDistByPts1[[i]][[i]])
+      mSvar <- variogramLine(xPointVgm, covariance=FALSE, dist_vector=areaDistByPtsX[[i]][[i]])
       areaIndexI <- which(x[,1] == uId1[i])
       g11 <- sum(outer(x[areaIndexI,4], x[areaIndexI,4]) * mSvar)
 
       n <- 1
       dg <- matrix(nrow=length(uId2), ncol=2)
       for(j in 1:length(uId2)) {
-        mSvar <- variogramLine(yPointVgm, covariance=FALSE, dist_vector=areaDistByPts2[[j]][[j]])
+        mSvar <- variogramLine(yPointVgm, covariance=FALSE, dist_vector=areaDistByPtsY[[j]][[j]])
         areaIndexJ <- which(y[,1] == uId2[j])
         g22 <- sum(outer(y[areaIndexJ,4],y[areaIndexJ,4]) * mSvar)
 
-        mSvar <- variogramLine(xyPointCrossVgm, covariance=FALSE, dist_vector=areaDistByPts12[[i]][[j]])
+        mSvar <- variogramLine(xyPointCrossVgm, covariance=FALSE, dist_vector=areaDistByPtsXY[[i]][[j]])
         g12 <- sum(outer(x[areaIndexI,4],y[areaIndexJ,4]) * mSvar)
 
         g <- g12 - (g11+g22)/2
-        dg[n,] <- c(areaDistByCentroid12[i,j], g)
+        dg[n,] <- c(areaDistByCentroidXY[i,j], g)
         n <- n+1
       }
       return(dg)
@@ -885,9 +880,9 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .calcAreaCentroid: [internal use only] Area centroid. ----
+## calcAreaCentroid: [internal use only] Area centroid. ----
 # discretePoints: discretized points of areas, four columns: areaId,ptx,pty,weight.
-.calcAreaCentroid <- function(discretePoints) {
+calcAreaCentroid <- function(discretePoints) {
   uId <- sort(unique(discretePoints[,1]))
   xys <- matrix(nrow=length(uId), ncol=2)
   for(i in 1:length(uId)) {
@@ -906,8 +901,8 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .crossName: [internal use only] names for cross-variogram model ----
-.crossName <- function(id1, id2) {
+## crossName: [internal use only] names for cross-variogram model ----
+crossName <- function(id1, id2) {
   if(id1 == id2) {
     return(id1)
   } else {
@@ -917,8 +912,8 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
 }
 
 
-## .meanDeconvVgms ----
-.meanDeconvVgms <- function(dVgms) {
+## meanDeconvVgms ----
+meanDeconvVgms <- function(dVgms) {
   dVgm <- dVgms[[1]]
   ngroup <- nrow(dVgms[[1]]$experientialAreaVariogram)
   sserr <- dVgms[[1]]$sserr
@@ -1007,4 +1002,19 @@ extractPointVgm <- function(g) {
     }
     return(g)
   }
+}
+
+
+## system sampling: select n samples from pop by equal interval ----
+sysSampling <- function(pop, n) {
+  if(length(pop) == 1 && is.numeric(pop)) {
+    pop <- 1:pop
+  }
+
+  N <- length(pop)
+  ss <- pop[seq(1, N, ceiling(N / n))]
+  if(length(ss) < n) {
+    ss <- sort(c(ss, sysSampling(setdiff(pop, ss), n-length(ss))))
+  }
+  return(ss)
 }

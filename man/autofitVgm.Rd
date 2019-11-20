@@ -8,7 +8,9 @@ Auto fit variogram for points.
 Auto fit variogram for points.
 }
 \usage{
-autofitVgm(x, y = x, ngroup = c(12, 15), rd = seq(0.3, 0.9, by = 0.1), model = c("Sph", "Exp", "Gau"), fit.nugget = TRUE, fixed.range = NA, longlat = FALSE, fig = FALSE, ...)
+autofitVgm(x, y = x, ngroup = c(12, 15), rd = seq(0.3, 0.9, by = 0.1),
+    model = c("Sph", "Exp", "Gau"), fit.nugget = TRUE, fixed.range = NA,
+    longlat = FALSE, fig = FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -40,33 +42,13 @@ whether to plot fitted variogram.
 additional parameters passed to gstat::vgm().
 }
 }
-\details{
-%%  ~~ If necessary, more details than the description above ~~
-}
 \value{
   \item{model}{fitted variogramModel.}
   \item{sserr}{fit error.}
   \item{bins}{binned gstatVariogram.}
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
 \note{
-The auto-search strategy was derived from \code{automap::autofitVariogram()}.
+The auto-search strategy was derived from \code{automap::autofitVariogram()}. The function tries different initial values of vgm to find the best fitted model.
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-}
-\examples{
-
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }% use one of  RShowDoc("KEYWORDS")
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

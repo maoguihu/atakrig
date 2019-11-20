@@ -1,0 +1,1 @@
+utils::globalVariables(c("%dopar%", "CRS", "SpatialPoints", "bbox", "clusterEvalQ", "coordinates", "error", "foreach", "get.knnx", "makeCluster", "proj4string", "rasterToPoints", "registerDoParallel", "registerDoSNOW", "spDists", "stopCluster", "xres", "yres", "ginv"))

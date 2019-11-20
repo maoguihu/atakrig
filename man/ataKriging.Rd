@@ -3,20 +3,24 @@
 \alias{atpKriging}
 \alias{ataKriging.cv}
 \title{
-Area-to-area, area-to-point ordinary kriging prediciton, cross-validation.
+Area-to-area, area-to-point ordinary Kriging prediciton, cross-validation.
 }
 \description{
-Area-to-area, area-to-point ordinary kriging prediciton, cross-validation.
+Area-to-area, area-to-point ordinary Kriging prediciton, cross-validation.
 }
 \usage{
-ataKriging(x, unknown, ptVgm, nmax = 10, longlat = FALSE, showProgress = TRUE, nopar = FALSE)
-atpKriging(x, unknown0, ptVgm, nmax = 10, longlat=FALSE, showProgress=TRUE, nopar = FALSE)
-ataKriging.cv(x, nfold = 10, ptVgm, nmax=10, longlat = FALSE, showProgress=TRUE, nopar = FALSE)
+ataKriging(x, unknown, ptVgm, nmax = 10, longlat = FALSE,
+    showProgress = TRUE, nopar = FALSE, clarkAntiLog = FALSE)
+atpKriging(x, unknown0, ptVgm, nmax = 10, longlat=FALSE,
+    showProgress=TRUE, nopar = FALSE)
+ataKriging.cv(x, nfold = 10, ptVgm, nmax=10, longlat = FALSE,
+    showProgress=TRUE, nopar = FALSE, clarkAntiLog = FALSE)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x}{
-a discreteArea object: list(areaValues, discretePoints), where areaValues = data.frame(areaId,centx,centy,value); discretePoints = data.frame(areaId,ptx,pty,weight).
+a discreteArea object: list(areaValues, discretePoints), where
+    areaValues: data.frame(areaId,centx,centy,value)
+    discretePoints: data.frame(areaId,ptx,pty,weight)
 }
   \item{unknown}{
 a discreted discreteArea object, or just data.frame(areaId,ptx,pty,weight).
@@ -40,58 +44,60 @@ coordinates are longitude/latitude or not.
 show progress bar for batch interpolation (multi destination areas).
 }
   \item{nopar}{
-disable parallel process in the function even if ataEnableCluster() has been called, mainly for  internal use.
+disable parallel process in the function even if \link{ataStartCluster}() has been called, mainly for  internal use.
+}
+  \item{clarkAntiLog}{
+for log-transformed input data, whether the estimated value should be adjusted(i.e. exponentiation).
 }
 }
-\details{
-%%  ~~ If necessary, more details than the description above ~~
-}
+%%\details{}
 \value{
 estimated value of destination area and its variance.
 }
 \references{
-%% ~put references to the literature/web site here ~
+Clark, I., 1998. Geostatistical estimation and the lognormal distribution. Geocongress. Pretoria, RSA., [online] Available from: http://kriging.com/publications/Geocongress1998.pdf.
+Goovaerts, P., 2008. Kriging and semivariogram deconvolution in the presence of irregular geographical units. Mathematical Geosciences 40 (1): 101-128.
+Isaaks, E. H., Srivastava, R. M., 1989. An introduction to applied geostatistics. New York, Oxford University Press.
 }
-\author{
-
-}
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
 \link{deconvPointVgm}, \link{ataCoKriging}
 }
 \examples{
+\dontrun{
 library(rgdal)
 
-# load demo data from rtop package
+## load demo data from rtop package
+if (!require("rtop", quietly = TRUE)) install.packages("rtop")
 rpath <- system.file("extdata", package="rtop")
 observations <- readOGR(rpath, "observations")
+
+# hist(observations$obs)
+observations$obs <- log(observations$obs)
+
+## point-scale variogram
+obs.discrete <- discretizePolygon(observations, cellsize=1500, id="ID", value="obs")
+pointsv <- deconvPointVgm(obs.discrete, model="Exp", ngroup=12, rd=0.75, fig=TRUE)
+
+## prediction
 predictionLocations <- readOGR(rpath, "predictionLocations")
-
-hist(observations$obs)
-observations$logObs <- log(observations$obs)
-
-# discretize polygons
-d1 <- discretizePolygon(observations, cellsize = 1500, idfield = "ID", valuefield = "logObs")
-
-plot(observations)
-points(d1$discretePoints$ptx, d1$discretePoints$pty, pch=20)
-
-# point-scale semivariogram deconvolution
-gokDeconv <- deconvPointVgm(d1, model="Exp", ngroup=12, rd=0.75, fig=T)
-
-# cross validation
-cv <- ataKriging.cv(d1, nfold = nrow(d1$areaValues), gokDeconv$pointVariogram, nmax = 10)
-cor(exp(cv$pred), exp(cv$value))
-
-# prediction
-d2 <- discretizePolygon(predictionLocations, cellsize = 1500, idfield = "ID")
-pred <- ataKriging(d1, d2$discretePoints, gokDeconv$pointVariogram, nmax = 10)
+pred.discrete <- discretizePolygon(predictionLocations, cellsize = 1500, id = "ID")
+pred <- ataKriging(obs.discrete, pred.discrete, pointsv$pointVariogram, nmax = 10)
 pred$pred <- exp(pred$pred)
 pred$var <- exp(pred$var)
 
+## cross validation
+pred.cv <- ataKriging.cv(obs.discrete, nfold=nrow(obs.discrete$areaValues), pointsv,
+    showProgress = TRUE)
+pred.cv$pred <- exp(pred.cv$pred)
+pred.cv$obs <- exp(pred.cv$value)
+
+# pearson correlation
+cor(pred.cv$obs, pred.cv$pred)
+
+# mae
+mean(abs(pred.cv$obs - pred.cv$pred))
+
+# rmse
+sqrt(mean((pred.cv$obs - pred.cv$pred)^2))
+}
 }

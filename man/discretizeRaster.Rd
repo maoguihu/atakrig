@@ -28,9 +28,6 @@ PSF type, "equal", "gau", or user defined PSF matrix (normalized).
 standard deviation for Gaussian PSF.
 }
 }
-\details{
-%%  ~~ If necessary, more details than the description above ~~
-}
 \value{
 a discreteArea object: list(areaValues, discretePoints).
   \item{areaValues}{
@@ -40,25 +37,9 @@ values of areas: data.frame(areaId,centx,centy,value), where areaId is polygon i
 discretized points of areas: data.frame(areaId,ptx,pty,weight), where ptx, pty are discretized points; by default, weight is equal for all points.
   }
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-
-}
 \note{
 Point weight is normalized for each polygon. Weight need not to be the same for all points of a polygon. They can be assigned according to specific variables, such as population distribution.
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
-\link{discretizePolygon}
+\link{discretizePolygon}, \link{ataCoKriging}
 }
-\examples{
-
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }% use one of  RShowDoc("KEYWORDS")
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

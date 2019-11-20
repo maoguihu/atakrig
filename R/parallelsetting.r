@@ -1,26 +1,14 @@
 ## atakriging
 ## Author: Maogui Hu.
 
-ataEnableCluster <- function(spec = min(parallel::detectCores(), 12), useDoSnow = TRUE, ...) {
+ataStartCluster <- function(spec = min(parallel::detectCores(), 8), ...) {
   cl <- getOption("ataKrigCluster")
-  if(!is.null(cl)) try(stopCluster(cl), silent = TRUE)
+  if(!is.null(cl)) try(snow::stopCluster(cl), silent = TRUE)
 
-  if(useDoSnow) {
-    if (!require(doSNOW)) {
-      stop("failed to load doSNOW!")
-    }
-    cl <- makeCluster(spec = spec, ...)
-    registerDoSNOW(cl)
-  } else {
-    if(!require(doParallel)) {
-      stop("failed to load doParallel!")
-    }
-    cl <- makeCluster(spec = spec, ...)
-    registerDoParallel(cl)
-  }
-
+  cl <- snow::makeCluster(spec = spec, ...)
+  doSNOW::registerDoSNOW(cl)
   options(ataKrigCluster = cl)
-  return(cl)
+  cl
 }
 
 
@@ -34,4 +22,9 @@ ataStopCluster <- function() {
 ataClusterClearObj <- function() {
   cl <- getOption("ataKrigCluster")
   if(!is.null(cl)) try(clusterEvalQ(cl, "rm(list=ls())"), silent = TRUE)
+}
+
+
+ataIsClusterEnabled <- function() {
+  return(!is.null(getOption("ataKrigCluster")))
 }

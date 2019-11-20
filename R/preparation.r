@@ -76,7 +76,7 @@ discretizeRaster <- function(x, cellsize, type="value", psf="equal", sigma=2) {
 }
 
 
-discretizePolygon <- function(x, cellsize, id=NULL, value=NULL) {
+discretizePolygon <- function(x, cellsize, id=NULL, value=NULL, showProgressBar=FALSE) {
 
   if(is.null(id)) {
     id <- "_id_"
@@ -87,7 +87,7 @@ discretizePolygon <- function(x, cellsize, id=NULL, value=NULL) {
     x$`_value_` <- NA
   }
 
-  regularsample = function(x, cellsize, iter=10) {
+  regularsample <- function(x, cellsize, iter=0) {
     bb <- bbox(x)
     xs <- tryCatch(seq(bb[1,1] + 0.5*cellsize, bb[1,2], by=cellsize), error = function(e) mean(bb[1,]))
     ys <- tryCatch(seq(bb[2,1] + 0.5*cellsize, bb[2,2], by=cellsize), error = function(e) mean(bb[2,]))
@@ -95,9 +95,10 @@ discretizePolygon <- function(x, cellsize, id=NULL, value=NULL) {
     names(xy) <- c("x","y")
 
     pts <- SpatialPoints(xy, CRS(proj4string(x)))[x]
+    if(length(pts) == 0 && iter <= 0) iter <- 10
 
     if(iter > 0) {
-      frac <- 1/iter
+      frac <- 0.5/(iter + 1)
       n <- nrow(xy)
       for (i in 1:iter) {
         offsetxy <- xy + frac * i * data.frame(x=rep(cellsize,n), y=rep(cellsize,n))
@@ -125,17 +126,15 @@ discretizePolygon <- function(x, cellsize, id=NULL, value=NULL) {
     x@data[,id] <- as.character(x@data[,id])
   }
 
-  pb <- txtProgressBar(max = length(x), width = 50, style = 3)
+  if(showProgressBar) pb <- txtProgressBar(max = length(x), width = 50, style = 3)
   discretePoints <- lapply(1:length(x), function(i) {
-    setTxtProgressBar(pb, i)
-    # pts <- spsample(x[i,], type="regular", cellsize = cellsize, iter = 5000)
-    pts <- regularsample(x[i,], cellsize = cellsize, iter = 10)
-    if(length(pts) == 0) pts <- regularsample(x[i,], cellsize = cellsize, iter = 100)
+    if(showProgressBar) setTxtProgressBar(pb, i)
+    pts <- regularsample(x[i,], cellsize = cellsize)
     xys <- cbind(data.frame(areaId=x@data[i,id]), coordinates(pts))
     xys$weight <- 1/nrow(xys)
     return(xys)
   })
-  close(pb)
+  if(showProgressBar) close(pb)
   discretePoints <- do.call(rbind, discretePoints)
   names(discretePoints)[2:3] <- c("ptx", "pty")
 
@@ -153,6 +152,23 @@ discretizePolygon <- function(x, cellsize, id=NULL, value=NULL) {
   class(rslt) <- c("list", "discreteArea")
 
   return(rslt)
+}
+
+
+isValidDiscreteAreaObj <- function(x){
+  if(!all(sort(names(x))) == c("areaValues", "discretePoints")) return(FALSE)
+  if(!all(names(x$areaValues) == c("areaId","centx","centy","value"))) return(FALSE)
+  if(!all(names(x$discretePoints) == c("areaId","ptx","pty","weight"))) return(FALSE)
+  return(TRUE)
+}
+
+
+updateDiscreteAreaValue <- function(x, newval) {
+  for (i in 1:nrow(newval)) {
+    indx <- x$areaValues$areaId == newval$areaId
+    x$areaValues$value[indx] <- newval$value[i]
+  }
+  return(x)
 }
 
 
@@ -268,3 +284,4 @@ writeValuesBlock <- function(x, v, start=c(1,1)) {
   }
   return(x)
 }
+

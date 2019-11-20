@@ -8,7 +8,7 @@ Plot deconvoluted point variogram.
 Plot deconvoluted point variogram.
 }
 \usage{
-plotDeconvVgm(v, main = NULL, posx = NULL, posy = NULL, lwd = 2, showRegVgm = TRUE)
+plotDeconvVgm(v, main = NULL, posx = NULL, posy = NULL, lwd = 2, showRegVgm = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -28,35 +28,6 @@ line width.
 show regularized area-scale variogram line or not.
 }
 }
-\details{
-%%  ~~ If necessary, more details than the description above ~~
-}
-\value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
-}
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
-\link{deconvPointVgmForCoKriging}, \link{deconvPointCrossVariogram}, \link{deconvPointCrossVariogram}
+\link{deconvPointVgmForCoKriging}, \link{deconvPointVgm}, \link{deconvPointCrossVgm}
 }
-\examples{
-
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }% use one of  RShowDoc("KEYWORDS")
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

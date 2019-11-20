@@ -1,15 +1,15 @@
-import(gstat)
-import(FNN)
-import(methods)
-
+useDynLib(atakrig, .registration=TRUE)
+import(gstat, foreach, doSNOW, snow, methods)
+importFrom(Rcpp, evalCpp)
+importFrom("methods", "is")
+importFrom("sp", "SpatialPoints", "CRS", "proj4string")
 importFrom("graphics", "layout", "legend", "lines", "mtext", "par", "plot", "plot.new")
-    importFrom("methods", "is")
-    importFrom("stats", "median")
-    importFrom("utils", "hasName", "setTxtProgressBar", "txtProgressBar")
+importFrom("stats", "median")
+importFrom("utils", "hasName", "setTxtProgressBar", "txtProgressBar")
 
 export(
   deconvPointVgm,
-  deconvPointCrossVariogram,
+  deconvPointCrossVgm,
   deconvPointVgmForCoKriging,
   extractPointVgm,
   autofitVgm,
@@ -26,7 +26,10 @@ export(
   discretizePolygon,
   subsetDiscreteArea,
   rbindDiscreteArea,
+  updateDiscreteAreaValue,
 
-  ataEnableCluster,
-  ataStopCluster
+  ataSetNumberOfThreadsForOMP,
+  ataStartCluster,
+  ataStopCluster,
+  ataIsClusterEnabled
 )
