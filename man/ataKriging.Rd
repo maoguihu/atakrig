@@ -58,46 +58,37 @@ estimated value of destination area and its variance.
 Clark, I., 1998. Geostatistical estimation and the lognormal distribution. Geocongress. Pretoria, RSA., [online] Available from: http://kriging.com/publications/Geocongress1998.pdf.
 Goovaerts, P., 2008. Kriging and semivariogram deconvolution in the presence of irregular geographical units. Mathematical Geosciences 40 (1): 101-128.
 Isaaks, E. H., Srivastava, R. M., 1989. An introduction to applied geostatistics. New York, Oxford University Press.
+Skøien, J. O. and G. Blöschl, et al., 2014. rtop: an R package for interpolation of data with a variable spatial support, with an example from river networks. Computers & Geosciences 67: 180-190.
 }
 \seealso{
 \link{deconvPointVgm}, \link{ataCoKriging}
 }
 \examples{
 \dontrun{
+library(atakrig)
 library(rgdal)
-
-## load demo data from rtop package
+## load demo data from rtop package ----
 if (!require("rtop", quietly = TRUE)) install.packages("rtop")
 rpath <- system.file("extdata", package="rtop")
 observations <- readOGR(rpath, "observations")
+observations$obs <- observations$QSUMMER_OB/observations$AREASQKM
 
-# hist(observations$obs)
-observations$obs <- log(observations$obs)
-
-## point-scale variogram
+## point-scale variogram ----
 obs.discrete <- discretizePolygon(observations, cellsize=1500, id="ID", value="obs")
 pointsv <- deconvPointVgm(obs.discrete, model="Exp", ngroup=12, rd=0.75, fig=TRUE)
 
-## prediction
+## cross validation ----
+pred.cv <- ataKriging.cv(obs.discrete, nfold=length(observations), pointsv)
+names(pred.cv)[6] <- "obs"
+
+summary(pred.cv[,c("obs","pred","var")])
+cor(pred.cv$obs, pred.cv$pred)			# Pearson correlation
+mean(abs(pred.cv$obs - pred.cv$pred))	# MAE
+sqrt(mean((pred.cv$obs - pred.cv$pred)^2))	# RMSE
+
+## prediction ----
 predictionLocations <- readOGR(rpath, "predictionLocations")
 pred.discrete <- discretizePolygon(predictionLocations, cellsize = 1500, id = "ID")
-pred <- ataKriging(obs.discrete, pred.discrete, pointsv$pointVariogram, nmax = 10)
-pred$pred <- exp(pred$pred)
-pred$var <- exp(pred$var)
-
-## cross validation
-pred.cv <- ataKriging.cv(obs.discrete, nfold=nrow(obs.discrete$areaValues), pointsv,
-    showProgress = TRUE)
-pred.cv$pred <- exp(pred.cv$pred)
-pred.cv$obs <- exp(pred.cv$value)
-
-# pearson correlation
-cor(pred.cv$obs, pred.cv$pred)
-
-# mae
-mean(abs(pred.cv$obs - pred.cv$pred))
-
-# rmse
-sqrt(mean((pred.cv$obs - pred.cv$pred)^2))
+pred <- ataKriging(obs.discrete, pred.discrete, pointsv$pointVariogram)
 }
 }

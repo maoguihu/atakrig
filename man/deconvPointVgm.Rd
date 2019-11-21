@@ -75,15 +75,13 @@ Goovaerts, P., 2008. Kriging and semivariogram deconvolution in the presence of 
 }
 \examples{
 \dontrun{
+library(atakrig)
 library(rgdal)
 
 ## load demo data from rtop package
 if (!require("rtop", quietly = TRUE)) install.packages("rtop")
 rpath <- system.file("extdata", package="rtop")
 observations <- readOGR(rpath, "observations")
-
-# hist(observations$obs)
-observations$obs <- log(observations$obs)
 
 ## point-scale variogram
 obs.discrete <- discretizePolygon(observations, cellsize=1500, id="ID", value="obs")

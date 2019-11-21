@@ -511,6 +511,7 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
   plotDVgm <- function(v, main) {
     xlim <- c(0, 1.1 * max(v$experientialAreaVariogram$dist))
     xx <- seq(0, xlim[2], length=100)
+    xx[1] <- 1.0e-3
     yy <- variogramLine(v$areaVariogram, covariance=FALSE, dist_vector=xx)$gamma
     yy2 <- variogramLine(v$pointVariogram, covariance=FALSE, dist_vector=xx)$gamma
 
