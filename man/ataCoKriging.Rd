@@ -109,11 +109,11 @@ sv.ck <- deconvPointVgmForCoKriging(aod.list, model="Exp", ngroup=12, rd=0.75,
 
 # prediction
 ataStartCluster()
-pred.ataok <- ataKriging(aod10.d, grid.pred, sv.ck$aod10, showProgress = T)
+pred.ataok <- ataKriging(aod10.d, grid.pred, sv.ck$aod10, showProgress = TRUE)
 pred.ataok_combine <- ataKriging(aod.combine, grid.pred, sv.ok_combine,
-                                 showProgress = T)
+                                 showProgress = TRUE)
 pred.atack <- ataCoKriging(aod.list, unknownVarId="aod10", unknown=grid.pred,
-                           ptVgms=sv.ck, oneCondition=T, auxRatioAdj=T, showProgress = T)
+                           ptVgms=sv.ck, oneCondition=TRUE, auxRatioAdj=TRUE, showProgress = TRUE)
 ataStopCluster()
 
 # reverse log transform

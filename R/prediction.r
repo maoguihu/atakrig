@@ -50,18 +50,18 @@ ataKriging <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=T
   unknownAreaIds <- sort(unique(unknown[,1]))
 
   krigOnce <- function(k) {
-    cur <- unknown[unknown[,1] == unknownAreaIds[k], 2:4, drop=F]
+    cur <- unknown[unknown[,1] == unknownAreaIds[k], 2:4, drop=FALSE]
 
     # D matrix
     D <- matrix(1, nrow=nSamples+1, ncol=1)
     for(i in 1:nSamples) {
       sampleI <- x$discretePoints[sampleIndex[[i]],]
-      D[i] <- ataCov(sampleI[,2:4,drop=F], cur, ptVgm, longlat = longlat)
+      D[i] <- ataCov(sampleI[,2:4,drop=FALSE], cur, ptVgm, longlat = longlat)
     }
 
     # solving
     solvedByGInv <- FALSE
-    wmu <- try(solve(C, D), T)
+    wmu <- try(solve(C, D), TRUE)
     if(class(wmu) == "try-error") {
       wmu <- MASS::ginv(C) %*% D
       solvedByGInv <- TRUE
@@ -191,10 +191,10 @@ ataKriging.cv <- function(x, nfold=10, ptVgm, nmax=10, longlat=FALSE, showProgre
 ataKriging.local <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=TRUE, nopar=FALSE, clarkAntiLog=FALSE) {
   if(is(unknown, "discreteArea")) unknown <- unknown$discretePoints
 
-  unknown <- unknown[sort.int(unknown[,1], index.return = T)$ix,]
+  unknown <- unknown[sort.int(unknown[,1], index.return = TRUE)$ix,]
   unknownCenter <- calcAreaCentroid(unknown)
 
-  nb <- FNN::get.knnx(as.matrix(x$areaValues[,2:3,drop=F]), as.matrix(unknownCenter[,2:3,drop=F]), nmax)
+  nb <- FNN::get.knnx(as.matrix(x$areaValues[,2:3,drop=FALSE]), as.matrix(unknownCenter[,2:3,drop=FALSE]), nmax)
   nb$nn.index <- matrix(x$areaValues[nb$nn.index,1], ncol = ncol(nb$nn.index))
 
   unknownAreaIds <- unknownCenter[,1]
@@ -267,7 +267,7 @@ ataCoKriging <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longlat=FALS
 
   # sort areaId in ascending order.
   for (i in 1:length(x)) {
-    x[[i]]$areaValues <- x[[i]]$areaValues[sort.int(x[[i]]$areaValues[,1], index.return = T)$ix,]
+    x[[i]]$areaValues <- x[[i]]$areaValues[sort.int(x[[i]]$areaValues[,1], index.return = TRUE)$ix,]
   }
 
   # combine all data together.
@@ -343,7 +343,7 @@ ataCoKriging <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longlat=FALS
 
     # solving
     solvedByGInv <- FALSE
-    wmu <- try(solve(C, D), T)
+    wmu <- try(solve(C, D), TRUE)
     if(class(wmu) == "try-error") {
       wmu <- MASS::ginv(C) %*% D
       solvedByGInv <- TRUE
@@ -504,14 +504,14 @@ ataCoKriging.local <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longla
   if(is(unknown, "discreteArea")) unknown <- unknown$discretePoints
 
   # sort areaId in ascending order.
-  unknown <- unknown[sort.int(unknown[,1], index.return = T)$ix,]
+  unknown <- unknown[sort.int(unknown[,1], index.return = TRUE)$ix,]
   unknownCenter <- calcAreaCentroid(unknown)
 
   # neighbor indexes for each unknown point.
   varIds <- sort(names(x))
   nb <- list()
   for (id in varIds) {
-    nb[[id]] <- FNN::get.knnx(as.matrix(x[[id]]$areaValues[,2:3,drop=F]), as.matrix(unknownCenter[,2:3,drop=F]), nmax)
+    nb[[id]] <- FNN::get.knnx(as.matrix(x[[id]]$areaValues[,2:3,drop=FALSE]), as.matrix(unknownCenter[,2:3,drop=FALSE]), nmax)
     nb[[id]]$nn.index <- matrix(x[[id]]$areaValues[,1][nb[[id]]$nn.index], ncol = nmax)
   }
   # only consider covariables within the radius of unknownVarId
@@ -577,12 +577,12 @@ ataCoKriging.local <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longla
 #   ptVgm: point scale variogram (gstat vgm).
 #	  longlat: indicator whether coordinates are longitude/latitude
 ataCov <- function(areaPts1, areaPts2, ptVgm, longlat=FALSE) {
-  # disM <- spDists(as.matrix(areaPts1[,1:2,drop=F]), as.matrix(areaPts2[,1:2,drop=F]), longlat=longlat)
-  # mCov <- variogramLine(ptVgm, covariance=T, dist_vector=disM)
+  # disM <- spDists(as.matrix(areaPts1[,1:2,drop=FALSE]), as.matrix(areaPts2[,1:2,drop=FALSE]), longlat=longlat)
+  # mCov <- variogramLine(ptVgm, covariance=TRUE, dist_vector=disM)
   # return(sum(outer(areaPts1[,3], areaPts2[,3]) * mCov))
 
   disM <- spDistsNN(areaPts1[,1], areaPts1[,2], areaPts2[,1], areaPts2[,2], longlat=longlat)
-  mCov <- variogramLineSimple(ptVgm, disM, bCov = T)
+  mCov <- variogramLineSimple(ptVgm, disM, bCov = TRUE)
   return(sum(outerProd(areaPts1[,3], areaPts2[,3]) * mCov))
 }
 

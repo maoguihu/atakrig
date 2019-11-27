@@ -55,7 +55,7 @@ discretizeRaster <- function(x, cellsize, type="value", psf="equal", sigma=2) {
   } else if(psf == "gau") {
     xy <- expand.grid(x=(1:xResoNum)-ceiling(xResoNum/2), y=(1:yResoNum)-ceiling(yResoNum/2))
     w <- 1/(2 * pi * sigma^2) * exp(-(xy$x^2 + xy$y^2)/(2 * sigma^2))
-    # w <- matrix(w/sum(w), ncol = xResoNum, byrow = T)
+    # w <- matrix(w/sum(w), ncol = xResoNum, byrow = TRUE)
     w <- w/sum(w)
   } else {
     stop("Incorrect psf parameter!")
@@ -175,11 +175,11 @@ updateDiscreteAreaValue <- function(x, newval) {
 ## select discretized data by area id. ----
 subsetDiscreteArea <- function(x, selAreaId, revSel=FALSE) {
   if(!revSel) {
-    rslt <- list(areaValues = x$areaValues[x$areaValues[,1] %in% selAreaId,,drop=F],
-         discretePoints = x$discretePoints[x$discretePoints[,1] %in% selAreaId,,drop=F])
+    rslt <- list(areaValues = x$areaValues[x$areaValues[,1] %in% selAreaId,,drop=FALSE],
+         discretePoints = x$discretePoints[x$discretePoints[,1] %in% selAreaId,,drop=FALSE])
   } else {
-    rslt <- list(areaValues = x$areaValues[!x$areaValues[,1] %in% selAreaId,,drop=F],
-         discretePoints = x$discretePoints[!x$discretePoints[,1] %in% selAreaId,,drop=F])
+    rslt <- list(areaValues = x$areaValues[!x$areaValues[,1] %in% selAreaId,,drop=FALSE],
+         discretePoints = x$discretePoints[!x$discretePoints[,1] %in% selAreaId,,drop=FALSE])
   }
 
   class(rslt) <- c("list", "discreteArea")

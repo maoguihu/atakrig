@@ -16,7 +16,7 @@ aod10.d$areaValues$value <- log(aod10.d$areaValues$value)
 
 ## part 1: gstat ordinary Kriging ----
 aod3k.pt <- aod3k.d$areaValues
-vgm.ok <- autofitVgm(aod3k.pt, ngroup=12, rd=0.75, fig = T)$model
+vgm.ok <- autofitVgm(aod3k.pt, ngroup=12, rd=0.75, fig = TRUE)$model
 unknown.pt <- grid.pred$areaValues
 coordinates(aod3k.pt) = ~centx+centy
 coordinates(unknown.pt) = ~centx+centy
@@ -40,11 +40,11 @@ vgm.ck <- deconvPointVgmForCoKriging(aod.list, model="Exp", ngroup=12, rd=0.75,
 
 ## part 3: area-to-area Kriging prediction ----
 ataStartCluster()
-pred.ataok <- ataKriging(aod10.d, grid.pred, vgm.ck$aod10, showProgress = T)
+pred.ataok <- ataKriging(aod10.d, grid.pred, vgm.ck$aod10, showProgress = TRUE)
 pred.ataok_combine <- ataKriging(aod.combine, grid.pred, vgm.ok_combine,
-                                 showProgress = T)
+                                 showProgress = TRUE)
 pred.atack <- ataCoKriging(aod.list, unknownVarId="aod3k", unknown=grid.pred,
-                           ptVgms=vgm.ck, oneCondition=T, auxRatioAdj=T, showProgress = T)
+                           ptVgms=vgm.ck, oneCondition=TRUE, auxRatioAdj=TRUE, showProgress = TRUE)
 
 # convert result to raster
 pred.ataok$pred <- exp(pred.ataok$pred)
@@ -61,10 +61,10 @@ spplot(pred)
 
 
 ## part 4: cross-validation ----
-cv.ok <- ataKriging.cv(aod10.d, nfold = 10, ptVgm = vgm.ck$aod10, showProgress = T)
-cv.ok_combine <- ataKriging.cv(aod.combine, nfold = 10, ptVgm = vgm.ok_combine, showProgress = T)
+cv.ok <- ataKriging.cv(aod10.d, nfold = 10, ptVgm = vgm.ck$aod10, showProgress = TRUE)
+cv.ok_combine <- ataKriging.cv(aod.combine, nfold = 10, ptVgm = vgm.ok_combine, showProgress = TRUE)
 cv.ck <- ataCoKriging.cv(aod.list, unknownVarId = "aod3k", nfold = 10, ptVgms = vgm.ck,
-                         showProgress = T)
+                         showProgress = TRUE)
 ataStopCluster()
 
 # cross-validation for gstat ordinary Kriging
