@@ -34,7 +34,7 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
       x[[id]] <- subsetDiscreteArea(x[[id]], x[[id]]$areaValues[indx,1])
     }
 
-    cat(sprintf("Deconvoluting variogram of %s ...\n", id))
+    message(sprintf("Deconvoluting variogram of %s ...\n", id))
     vgms[[id]] <- deconvPointVgm(x[[id]], model = model, maxIter = maxIter, fixed.range=fixed.range, fig=FALSE, ...)
     stopifnot(!is.null(vgms[[id]]))
     if(vgms[[id]]$status == 0) {
@@ -47,7 +47,7 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
     id1 <- varnames[i]
     for (j in (i+1):length(varnames)) {
       id2 <- varnames[j]
-      cat(sprintf("Deconvoluting cross-variogram between %s and %s ...\n", id1, id2))
+      message(sprintf("Deconvoluting cross-variogram between %s and %s ...\n", id1, id2))
       id <- crossName(id1,id2)
       vgms[[id]] <- deconvPointCrossVgm(x[[id1]], x[[id2]],
                                                    vgms[[id1]]$pointVariogram,
@@ -128,7 +128,7 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
   # areaSvmodel <- autofitVgm(x$areaValues, fit.nugget=fit.nugget, fixed.range=fixed.range, longlat=longlat, model=model, ...)
   areaSvmodel <- autofitVgm(x$areaValues, fit.nugget=fit.nugget, longlat=longlat, model=model, ...)
   if(is.null(areaSvmodel)) {
-    cat("Fitting area-scale variogram model failed!\n")
+    message("Fitting area-scale variogram model failed!\n")
     return(NULL)
   }
   if(nrow(x$areaValues) == nrow(x$discretePoints)) {
@@ -175,7 +175,7 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
   bNewW <- FALSE
   status <- -1
   for(iter in 1:maxIter) {
-    cat(sprintf("\riterating: %d", iter))
+    message(sprintf("\riterating: %d", iter))
 
     ## 6. update regularized semivariance
     if(!bNewW)
@@ -237,7 +237,7 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
   if(iter == maxIter) {
     status <- 4
   }
-  cat("\r",rep(" ",15),"\r")
+  # message("\r",rep(" ",15),"\r")
 
   vgms <- list(pointVariogram = pointSvmodel,
                  areaVariogram = areaSvmodel$model,
@@ -247,7 +247,7 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
                  sserr = areaSvmodel$sserr)
   class(vgms) <- c("list", "ataKrigVgm")
 
-  if(fig) try(plotDeconvVgm(vgms), silent = T)
+  if(fig) try(plotDeconvVgm(vgms), silent = TRUE)
 
   return(vgms)
 }
@@ -294,7 +294,7 @@ deconvPointCrossVgm <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter
   # areaCrossVgm <- autofitVgm(x$areaValues, y$areaValues, fit.nugget=fit.nugget, fixed.range=fixed.range, longlat=longlat, model=model, ...)
   areaCrossVgm <- autofitVgm(x$areaValues, y$areaValues, fit.nugget=fit.nugget, longlat=longlat, model=model, ...)
   if(is.null(areaCrossVgm$model)) {
-    cat("Fitting area-scale cross-variogram model failed!\n")
+    warning("Fitting area-scale cross-variogram model failed!\n")
     return(NULL)
   }
   if(nrow(x$areaValues) == nrow(x$discretePoints) && nrow(y$areaValues) == nrow(y$discretePoints)) {
@@ -429,7 +429,7 @@ deconvPointCrossVgm <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter
   bNewW <- FALSE
   status <- -1
   for(iter in 1:maxIter) {
-    cat(sprintf("\riterating: %d", iter))
+    message(sprintf("\riterating: %d", iter))
 
     ## 6. update regularized semivariance
     if(!bNewW)
@@ -491,7 +491,7 @@ deconvPointCrossVgm <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter
   if(iter == maxIter) {
     status <- 4
   }
-  cat("\r",rep(" ",15),"\r")
+  # message("\r",rep(" ",15),"\r")
 
   vgms <- list(pointVariogram = pointCrossVgm,
                  areaVariogram = areaCrossVgm$model,
@@ -501,7 +501,7 @@ deconvPointCrossVgm <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter
                  sserr = areaCrossVgm$sserr)
   class(vgms) <- c("list", "ataKrigVgm")
 
-  if(fig) try(plotDeconvVgm(vgms), T)
+  if(fig) try(plotDeconvVgm(vgms), TRUE)
   return(vgms)
 }
 
@@ -518,7 +518,7 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
     ylim <- c(min(0, min(v$experientialAreaVariogram$gamma)),
               1.1 * max(c(v$experientialAreaVariogram$gamma, yy, yy2)))
     plot(v$experientialAreaVariogram$dist, v$experientialAreaVariogram$gamma,
-         xaxs="i", yaxs="i", col="blue", xlim=xlim, ylim=ylim, ann = F,
+         xaxs="i", yaxs="i", col="blue", xlim=xlim, ylim=ylim, ann = FALSE,
          xlab="distance", ylab="semivariance", main=main)
     lines(xx, yy, col="blue", lwd=lwd)
     lines(xx, yy2, col="red", lwd=lwd)
@@ -527,7 +527,9 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
     mtext(main, side = 3, line = 0.2, cex = 0.8)
   }
 
-  def.par <- par(no.readonly = TRUE)
+  oldpar <- par(no.readonly = TRUE)
+  on.exit(par(oldpar))
+
   par(mar=c(2.5, 3.5, 1, .5)) # reduce the margins around the figure
   par(mgp=c(1.5, .5, 0)) #  reduce the spacing between the figure plotting region and the axis labels
   par(oma=c(1, 1, 2.5, 0)) #  add an outer margin to the top of the graph
@@ -540,7 +542,7 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
     n <- sort(names(v)[1:m0])
     m1 <- m0*(m0-1)/2 + m0
     m <- matrix(0, nrow=m0, ncol=m0)
-    m[lower.tri(m, diag = T)] <- seq(m1)
+    m[lower.tri(m, diag = TRUE)] <- seq(m1)
     m[1,2:m0] <- m1 + 1
     layout(mat=m)
 
@@ -575,8 +577,6 @@ plotDeconvVgm <- function(v, main=NULL, posx=NULL, posy=NULL, lwd=2, showRegVgm=
   mtext(main, outer = TRUE,  side = 3, cex = 1.2, line = 0)
   mtext("distance", outer = TRUE,  side = 1, cex = 1.05, line = 0)
   mtext("semivariance", outer = TRUE,  side = 2, cex = 1.05, line = -1)
-
-  par(def.par)
 }
 
 
@@ -960,7 +960,7 @@ meanDeconvVgms <- function(dVgms) {
   expAreaVgm <- c()
   drng <- range(dVgm$experientialAreaVariogram$dist)
   dintv <- seq(drng[1], drng[2], length.out = 20)
-  dindex <- findInterval(dVgm$experientialAreaVariogram$dist, dintv, rightmost.closed = T)
+  dindex <- findInterval(dVgm$experientialAreaVariogram$dist, dintv, rightmost.closed = TRUE)
   for (k in sort(unique(dindex))) {
     cur <- dVgm$experientialAreaVariogram[dindex == k,]
     w <- cur$np/sum(cur$np)
@@ -975,7 +975,7 @@ meanDeconvVgms <- function(dVgms) {
   regAreaVgm <- c()
   drng <- range(dVgm$regularizedAreaVariogram$dist)
   dintv <- seq(drng[1], drng[2], length.out = 20)
-  dindex <- findInterval(dVgm$regularizedAreaVariogram$dist, dintv, rightmost.closed = T)
+  dindex <- findInterval(dVgm$regularizedAreaVariogram$dist, dintv, rightmost.closed = TRUE)
   for (k in sort(unique(dindex))) {
     cur <- dVgm$regularizedAreaVariogram[dindex == k,]
     regAreaVgm <- rbind(regAreaVgm, data.frame(dist = mean(cur$dist), gamma = mean(cur$gamma)))
