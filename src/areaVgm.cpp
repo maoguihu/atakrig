@@ -148,8 +148,7 @@ inline LogicalVector CompareCharacter(CharacterVector& vec, String scalar)
 }
 
 
-/*  Copyright by Roger Bivand (C) 2005-2009  */
-/*  Modified from sp package  */
+/*  The function is modified from sp package (Copyright by Roger Bivand (C) 2005-2009), thanks Roger Bivand.  */
 # define POWDI(x,i) pow(x,i)
 double sp_gcdist(double lon1, double lon2, double lat1, double lat2) {
 
