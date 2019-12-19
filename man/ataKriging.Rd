@@ -64,11 +64,26 @@ Skøien, J. O. and G. Blöschl, et al., 2014. rtop: an R package for interpolati
 \link{deconvPointVgm}, \link{ataCoKriging}
 }
 \examples{
+\dontshow{
+library(atakrig)
+library(raster)
+
+rpath <- system.file("extdata", package="atakrig")
+aod3k <- raster(file.path(rpath, "MOD04_3K_A2017042.tif"))
+aod3k <- crop(aod3k, extent(aod3k, 10,15,20,25))
+
+aod3k.d <- discretizeRaster(aod3k, 1500)
+grid.pred <- discretizeRaster(aod3k, 1500, type = "all")
+
+sv.ok <- deconvPointVgm(aod3k.d, model="Exp", ngroup=12, rd=0.8, fig = FALSE)
+pred.ataok <- ataKriging(aod3k.d, grid.pred, sv.ok, showProgress = FALSE)
+}
 \dontrun{
 library(atakrig)
 library(rgdal)
+
 ## load demo data from rtop package ----
-if (!require("rtop", quietly = TRUE)) install.packages("rtop")
+if (!require("rtop", quietly = TRUE)) message("rtop library is required for demo data.")
 rpath <- system.file("extdata", package="rtop")
 observations <- readOGR(rpath, "observations")
 observations$obs <- observations$QSUMMER_OB/observations$AREASQKM

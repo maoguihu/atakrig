@@ -2,7 +2,7 @@ library(atakrig)
 library(rgdal)
 
 ## load demo data from rtop package ----
-if (!require("rtop", quietly = TRUE)) install.packages("rtop")
+if (!require("rtop", quietly = TRUE)) message("rtop library is required for demo data.")
 rpath <- system.file("extdata", package="rtop")
 observations <- readOGR(rpath, "observations")
 

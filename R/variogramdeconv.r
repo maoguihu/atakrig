@@ -35,10 +35,13 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
     }
 
     message(sprintf("Deconvoluting variogram of %s ...\n", id))
-    vgms[[id]] <- deconvPointVgm(x[[id]], model = model, maxIter = maxIter, fixed.range=fixed.range, fig=FALSE, ...)
-    stopifnot(!is.null(vgms[[id]]))
-    if(vgms[[id]]$status == 0) {
+    suppressMessages(
+      vgms[[id]] <- deconvPointVgm(x[[id]], model = model, maxIter = maxIter, fixed.range=fixed.range, fig=FALSE, ...)
+    )
+    # stopifnot(!is.null(vgms[[id]]))
+    if(is.null(vgms[[id]]) || vgms[[id]]$status == 0) {
       warning(sprintf("deconvolution failed for %s!", id))
+      return(NULL)
     }
   }
 
@@ -591,7 +594,10 @@ autofitVgm <- function(x, y=x, ngroup=c(12,15), rd=seq(0.3,0.9,by=0.1), model=c(
   for (i in 1:length(ngroup)) {
     for(j in 1:length(rd)) {
       areaVgm <- calcSvDgGroup(areaSvCloud, ngroup=ngroup[i], rd=rd[j])
-      if(nrow(areaVgm) < 10) next
+      if(nrow(areaVgm) < 10) {
+        # message("too few points to fit variogram model!")
+        next
+      }
 
       m <- fitPointVgm(vgmdef=areaVgm, model=model, fit.nugget=fit.nugget, fixed.range=fixed.range, ...)
       if(is.null(m$model)) next
