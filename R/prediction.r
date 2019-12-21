@@ -62,7 +62,7 @@ ataKriging <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=T
     # solving
     solvedByGInv <- FALSE
     wmu <- try(solve(C, D), TRUE)
-    if(class(wmu) == "try-error") {
+    if(is(wmu, "try-error")) {
       wmu <- MASS::ginv(C) %*% D
       solvedByGInv <- TRUE
     }
@@ -344,7 +344,7 @@ ataCoKriging <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longlat=FALS
     # solving
     solvedByGInv <- FALSE
     wmu <- try(solve(C, D), TRUE)
-    if(class(wmu) == "try-error") {
+    if(is(wmu, "try-error")) {
       wmu <- MASS::ginv(C) %*% D
       solvedByGInv <- TRUE
     }
