@@ -19,7 +19,7 @@
 #   showProgress: show progress bar for batch interpolation (multi destination areas).
 #   nopar: for internal use. Disable parallel process in the function even if ataStartCluster() has been called.
 # Output: estimated value of destination area and its variance
-ataKriging <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=TRUE, nopar=FALSE, clarkAntiLog = FALSE) {
+ataKriging <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=FALSE, nopar=FALSE, clarkAntiLog = FALSE) {
   stopifnot(nmax > 0)
   if(nmax < Inf) { # local neigbourhood Kriging.
     return(ataKriging.local(x, unknown, ptVgm, nmax, longlat, showProgress, nopar, clarkAntiLog))
@@ -111,7 +111,7 @@ ataKriging <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=T
 
 ## ataKriging.cv: ataKriging cross-validation ----
 #   nfold: integer; n-fold cross validation.
-ataKriging.cv <- function(x, nfold=10, ptVgm, nmax=10, longlat=FALSE, showProgress=TRUE, nopar=FALSE, clarkAntiLog=FALSE) {
+ataKriging.cv <- function(x, nfold=10, ptVgm, nmax=10, longlat=FALSE, showProgress=FALSE, nopar=FALSE, clarkAntiLog=FALSE) {
   N <- nrow(x$areaValues)
   if(missing(nfold)) {
     nfold <- N
@@ -188,7 +188,7 @@ ataKriging.cv <- function(x, nfold=10, ptVgm, nmax=10, longlat=FALSE, showProgre
 
 
 ## ataKriging.local: [internal use only]. ----
-ataKriging.local <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=TRUE, nopar=FALSE, clarkAntiLog=FALSE) {
+ataKriging.local <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProgress=FALSE, nopar=FALSE, clarkAntiLog=FALSE) {
   if(is(unknown, "discreteArea")) unknown <- unknown$discretePoints
 
   unknown <- unknown[sort.int(unknown[,1], index.return = TRUE)$ix,]
@@ -255,7 +255,7 @@ ataKriging.local <- function(x, unknown, ptVgm, nmax=10, longlat=FALSE, showProg
 #   nopar: disable parallel process in the function even if ataStartCluster() has been called, mainly for  internal use.
 # Output: estimated value of destination area and its variance
 ataCoKriging <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longlat=FALSE, oneCondition=FALSE,
-                         meanVal=NULL, auxRatioAdj=TRUE, showProgress=TRUE, nopar=FALSE, clarkAntiLog=FALSE) {
+                         meanVal=NULL, auxRatioAdj=TRUE, showProgress=FALSE, nopar=FALSE, clarkAntiLog=FALSE) {
   stopifnot(nmax > 0)
   if(nmax < Inf) {
     return(ataCoKriging.local(x, unknownVarId, unknown, ptVgms, nmax, longlat, oneCondition,
@@ -414,7 +414,7 @@ ataCoKriging <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longlat=FALS
 ## ataCoKriging.cv: ataCoKriging cross validation. ----
 #   nfold: integer; n-fold cross validation.
 ataCoKriging.cv <- function(x, unknownVarId, nfold=10, ptVgms, nmax=10, longlat=FALSE, oneCondition=FALSE,
-                            meanVal=NULL, auxRatioAdj=TRUE, showProgress=TRUE, nopar=FALSE, clarkAntiLog=FALSE) {
+                            meanVal=NULL, auxRatioAdj=TRUE, showProgress=FALSE, nopar=FALSE, clarkAntiLog=FALSE) {
   N <- nrow(x[[unknownVarId]]$areaValues)
   if(missing(nfold)) {
     nfold <- N
@@ -499,7 +499,7 @@ ataCoKriging.cv <- function(x, unknownVarId, nfold=10, ptVgms, nmax=10, longlat=
 ## ataCoKriging.local: [internal use only]. ----
 ataCoKriging.local <- function(x, unknownVarId, unknown, ptVgms, nmax=10, longlat=FALSE,
                                oneCondition=FALSE, meanVal=NULL, auxRatioAdj=TRUE,
-                               showProgress=TRUE, nopar=FALSE, clarkAntiLog=FALSE) {
+                               showProgress=FALSE, nopar=FALSE, clarkAntiLog=FALSE) {
 
   if(is(unknown, "discreteArea")) unknown <- unknown$discretePoints
 
@@ -599,7 +599,7 @@ ataCov <- function(areaPts1, areaPts2, ptVgm, longlat=FALSE) {
 #   showProgress: show progress bar for batch interpolation (multi destination areas).
 #   nopar: for internal use. Disable parallel process in the function even if ataStartCluster() has been called.
 # Output: estimated value of destination area and its variance.
-atpKriging <- function(x, unknown0, ptVgm, nmax=10, longlat=FALSE, showProgress=TRUE, nopar=FALSE) {
+atpKriging <- function(x, unknown0, ptVgm, nmax=10, longlat=FALSE, showProgress=FALSE, nopar=FALSE) {
   unknown <- cbind(areaId=1:nrow(unknown0), unknown0, weight=1)
   return(ataKriging(x, unknown, ptVgm, nmax, longlat, showProgress, nopar))
 }
@@ -623,7 +623,7 @@ atpKriging <- function(x, unknown0, ptVgm, nmax=10, longlat=FALSE, showProgress=
 #   nopar: for internal use. Disable parallel process in the function even if ataStartCluster() has been called.
 # Output: estimated value of destination area and its variance.
 atpCoKriging <- function(x, unknownVarId, unknown0, ptVgms, nmax=10, longlat=FALSE, oneCondition=FALSE,
-                         meanVal=NULL, auxRatioAdj=TRUE, showProgress=TRUE, nopar=FALSE) {
+                         meanVal=NULL, auxRatioAdj=TRUE, showProgress=FALSE, nopar=FALSE) {
   unknown <- cbind(areaId=1:nrow(unknown0), unknown0, weight=1)
   return(ataCoKriging(x, unknownVarId, unknown, ptVgms, nmax, longlat, oneCondition, meanVal, auxRatioAdj, showProgress, nopar))
 }

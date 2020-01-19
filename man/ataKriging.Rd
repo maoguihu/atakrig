@@ -10,11 +10,11 @@ Area-to-area, area-to-point ordinary Kriging prediciton, cross-validation.
 }
 \usage{
 ataKriging(x, unknown, ptVgm, nmax = 10, longlat = FALSE,
-    showProgress = TRUE, nopar = FALSE, clarkAntiLog = FALSE)
+    showProgress = FALSE, nopar = FALSE, clarkAntiLog = FALSE)
 atpKriging(x, unknown0, ptVgm, nmax = 10, longlat=FALSE,
-    showProgress=TRUE, nopar = FALSE)
+    showProgress = FALSE, nopar = FALSE)
 ataKriging.cv(x, nfold = 10, ptVgm, nmax=10, longlat = FALSE,
-    showProgress=TRUE, nopar = FALSE, clarkAntiLog = FALSE)
+    showProgress = FALSE, nopar = FALSE, clarkAntiLog = FALSE)
 }
 \arguments{
   \item{x}{
@@ -78,7 +78,7 @@ grid.pred <- discretizeRaster(aod3k, 1500, type = "all")
 sv.ok <- deconvPointVgm(aod3k.d, model="Exp", ngroup=12, rd=0.8, fig = FALSE)
 pred.ataok <- ataKriging(aod3k.d, grid.pred, sv.ok, showProgress = FALSE)
 }
-\dontrun{
+\donttest{
 library(atakrig)
 library(rgdal)
 
