@@ -1,14 +1,14 @@
 Package: atakrig
 Type: Package
 Title: Area-to-Area Kriging
-Version: 0.9.5
+Version: 0.9.6
 Authors@R: c(
     person("Maogui", "Hu", role = c("aut", "cre"), email = "humg@lreis.ac.cn"),
     person("Yanwei", "Huang", role = "ctb"),
     person("Roger", "Bivand", role = "ctb"))
 Description: Point-scale variogram deconvolution from irregular/regular spatial support according to Goovaerts, P., (2008) <doi: 10.1007/s11004-007-9129-1>; ordinary area-to-area (co)Kriging and area-to-point (co)Kriging.
 Imports: gstat, sp, rgeos, foreach, doSNOW, snow, FNN, methods, MASS, Rcpp
-Suggests: raster, rgdal
+Suggests: raster, rgdal, rtop
 License: GPL (>= 2.0)
 NeedsCompilation: yes
 Encoding: UTF-8
