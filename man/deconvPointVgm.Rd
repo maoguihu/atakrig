@@ -9,10 +9,10 @@ Point-scale variogram, cross-variogram deconvolution.
 Point-scale variogram, cross-variogram deconvolution.
 }
 \usage{
-deconvPointVgm(x, model = "Exp", maxIter = 100, fit.nugget = FALSE,
+deconvPointVgm(x, model = "Exp", maxIter = 100,
     fixed.range = NA, longlat = FALSE, maxSampleNum = 100, fig = TRUE, ...)
 deconvPointCrossVgm(x, y, xPointVgm, yPointVgm, model = "Exp",
-    maxIter = 100, fit.nugget = FALSE, fixed.range = NA, longlat = FALSE,
+    maxIter = 100, fixed.range = NA, longlat = FALSE,
     maxSampleNum = 100, fig = TRUE, ...)
 deconvPointVgmForCoKriging(x, model = "Exp", maxIter = 100,
     fixed.range = NA, maxSampleNum = 100, fig = TRUE, ...)
@@ -33,9 +33,6 @@ for \code{deconvPointVgmForCoKriging}, x is a list of \code{discreteArea} object
 }
   \item{maxIter}{
 max iteration number of deconvolution.
-}
-  \item{fit.nugget}{
-fit variogram nugget or not.
 }
   \item{fixed.range}{
 variogram range fixed or not.
@@ -91,7 +88,7 @@ grid.pred <- discretizeRaster(aod3k, 1500, type = "all")
 sv.ok <- deconvPointVgm(aod3k.d, model="Exp", ngroup=12, rd=0.8, fig = FALSE)
 #pred.ataok <- ataKriging(aod3k.d, grid.pred, sv.ok, showProgress = FALSE)
 }
-\dontrun{
+\donttest{
 library(atakrig)
 library(rgdal)
 

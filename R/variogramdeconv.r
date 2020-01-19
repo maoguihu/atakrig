@@ -102,7 +102,6 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
 #      discretePoints: discretized points of areas (data.frame: areaId,ptx,pty,weight); the weight is normalized.
 #   model: variogram model type, e.g. "Exp", "Sph", "Gau", "Mat". Calling vgm() returns available models.
 #   maxIter: max iteration number of deconvolution.
-#   fit.nugget: fit variogram nugget or not.
 #   fixed.range: variogram range fixed or not.
 #	  longlat: indicator whether coordinates are longitude/latitude
 #   maxSampleNum: to save memory and to reduce calculation time, for large number of discretized areas,
@@ -114,9 +113,10 @@ deconvPointVgmForCoKriging <- function(x, model="Exp", maxIter=100, fixed.range=
 #        experientialAreaVariogram,  # experiential area variogram from area centroids.
 #        regularizedAreaVariogram    # regularized area variogram from discretized area points and point variogram.
 #        ).
-deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.range=NA, longlat=FALSE,
+deconvPointVgm <- function(x, model="Exp", maxIter=100, fixed.range=NA, longlat=FALSE,
                            maxSampleNum=100, fig=TRUE, ...) {
   # Pierre Goovaerts suggested a different weight (similar to fit.method = 2) in fitting the experimental variogram.
+  fit.nugget <- FALSE
 
   if(!hasName(x, "discretePoints"))
     x$discretePoints <- cbind(x$areaValues[,1:3], data.frame(weight=rep(1,nrow(x$areaValues))))
@@ -274,9 +274,9 @@ deconvPointVgm <- function(x, model="Exp", maxIter=100, fit.nugget=FALSE, fixed.
 #        experientialAreaVariogram,  # experiential area variogram from area centroids.
 #        regularizedAreaVariogram    # regularized area variogram from discretized area points and point variogram.
 #        ).
-deconvPointCrossVgm <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter=100, fit.nugget=FALSE,
+deconvPointCrossVgm <- function(x, y, xPointVgm, yPointVgm, model="Exp", maxIter=100,
                                       fixed.range=NA, longlat=FALSE, maxSampleNum=100, fig=TRUE, ...) {
-
+  fit.nugget <- FALSE
   if(!hasName(x, "discretePoints"))
     x$discretePoints <- cbind(x$areaValues[,1:3], data.frame(weight=rep(1,nrow(x$areaValues))))
   if(!hasName(y, "discretePoints"))
