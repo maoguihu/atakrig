@@ -30,8 +30,7 @@ pred.ok.r <- raster(pred.ok[1])
 ## part 2: point-scale variogram deconvolution ----
 # point-scale variogram from combined AOD-3k and AOD-10
 aod.combine <- rbindDiscreteArea(x = aod3k.d, y = aod10.d)
-vgm.ok_combine <- deconvPointVgm(aod.combine, model="Exp", ngroup=12, rd=0.75,
-                                fit.nugget = TRUE)
+vgm.ok_combine <- deconvPointVgm(aod.combine, model="Exp", ngroup=12, rd=0.75)
 
 # point-scale cross-variogram
 aod.list <- list(aod3k=aod3k.d, aod10=aod10.d)
@@ -61,8 +60,44 @@ spplot(pred)
 
 
 ## part 4: cross-validation ----
-cv.ok <- ataKriging.cv(aod10.d, nfold = 10, ptVgm = vgm.ck$aod10, showProgress = TRUE)
-cv.ok_combine <- ataKriging.cv(aod.combine, nfold = 10, ptVgm = vgm.ok_combine, showProgress = TRUE)
+cv.ok <- c()
+ext1 <- extent(aod3k)
+ext2 <- extent(aod10)
+xrange <- c(max(ext1[1],ext2[1]), min(ext1[2],ext2[2]))
+for (i in 1:10) {
+  print(i)
+  x <- xrange[1] + (xrange[2]-xrange[1]) / 10 * c(i-1, i)
+  cols <- colFromX(aod3k, x)
+  aod3k.sub <- aod3k[,cols[1]:cols[2], drop=FALSE]
+
+  cols <- colFromX(aod10, x)
+  cols <- c(1:ncol(aod10))[-c(cols[1]:cols[2])]
+  aod10.sub <- aod10[,cols,drop=FALSE]
+
+  aod3k.sub.d <- discretizeRaster(aod3k.sub, 1500)
+  aod10.sub.d <- discretizeRaster(aod10.sub, 1500)
+  aod3k.sub.d$areaValues$value <- log(aod3k.sub.d$areaValues$value)
+  aod10.sub.d$areaValues$value <- log(aod10.sub.d$areaValues$value)
+
+  predi <- ataKriging(aod10.sub.d, aod3k.sub.d, vgm.ck$aod10, nmax=10)
+  predi$value <- aod3k.sub.d$areaValues$value
+  cv.ok <- rbind(cv.ok, predi)
+}
+
+cv.ok_combine <- c()
+for (i in 1:10) {
+  print(i)
+  x <- xrange[1] + (xrange[2]-xrange[1]) / 10 * c(i-1, i)
+  indx <- aod.combine$areaValues$centx >= x[1] & (aod.combine$areaValues$centx < x[2])
+  areaId <-  aod.combine$areaValues$areaId[indx]
+
+  unknown <- subsetDiscreteArea(aod.combine, areaId)
+  predi <- ataKriging(subsetDiscreteArea(aod.combine, areaId, revSel = TRUE),
+                      unknown, vgm.ok_combine, nmax = 10)
+  cv.ok_combine <- rbind(cv.ok_combine, merge(unknown$areaValues, predi, by="areaId"))
+}
+cv.ok_combine <- cv.ok_combine[grepl("y_", cv.ok_combine$areaId),]
+
 cv.ck <- ataCoKriging.cv(aod.list, unknownVarId = "aod3k", nfold = 10, ptVgms = vgm.ck,
                          showProgress = TRUE)
 ataStopCluster()
@@ -87,10 +122,7 @@ evalAccuracy <- function(value, pred) {
   return(c(cor = cor(value, pred), mae = mean(abs(value - pred)), rmse = sqrt(mean((value - pred)^2))))
 }
 
-# select pixels corresponding to original AOD3k
-cv.ok_combineSub <- cv.ok_combine[(substr(cv.ok_combine$areaId, 1, 1) == "x"),]
-
 evalAccuracy(exp(cv.pointOk$value), exp(cv.pointOk$var1.pred))
 evalAccuracy(exp(cv.ok$value), exp(cv.ok$pred))
-evalAccuracy(exp(cv.ck$value), exp(cv.ck$pred))
 evalAccuracy(exp(cv.ok_combine$value), exp(cv.ok_combine$pred))
+evalAccuracy(exp(cv.ck$value), exp(cv.ck$pred))
