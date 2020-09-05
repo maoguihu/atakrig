@@ -17,7 +17,8 @@ ataSetNumberOfThreadsForOMP(num)
 }
 }
 \details{
-  The deconvolution of variogram is computation intense. Some parts of them is coded by Rcpp with OpenMP enabled. By default, the number of threads created by OpenMP is the number of local machine cores.
+  The deconvolution of variogram is computation intensive. Some parts of them is coded by Rcpp with OpenMP enabled. By default, the number of threads created by OpenMP is the number of local machine cores.
+  It should be noted that OpenMP is not supported for macOS since R 4.0.0.
 }
 \seealso{
 \link{ataStartCluster}

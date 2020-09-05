@@ -1,7 +1,11 @@
 // [[Rcpp::plugins(openmp)]]
 #include <Rcpp.h>
 #include <math.h>
+
+//OpenMP is not supported for macOS since R 4.0.0
+#ifndef __APPLE__
 #include <omp.h>
+#endif // !__APPLE__
 
 using namespace Rcpp;
 

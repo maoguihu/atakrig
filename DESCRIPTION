@@ -1,7 +1,7 @@
 Package: atakrig
 Type: Package
 Title: Area-to-Area Kriging
-Version: 0.9.6
+Version: 0.9.7
 Authors@R: c(
     person("Maogui", "Hu", role = c("aut", "cre"), email = "humg@lreis.ac.cn"),
     person("Yanwei", "Huang", role = "ctb"),

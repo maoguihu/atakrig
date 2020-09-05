@@ -8,7 +8,7 @@ Start/stop cluster parallel calculation.
 }
 \description{
 Start/stop cluster parallel calculation for time consuming prediction.
-ataIsClusterEnabled query if cluster connections have been started by ataStartCluster.
+ataIsClusterEnabled queries if cluster connections have been started by ataStartCluster.
 }
 \usage{
 ataStartCluster(spec = min(parallel::detectCores(), 8), ...)
