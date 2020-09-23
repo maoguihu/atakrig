@@ -38,7 +38,7 @@ vgm.ck <- deconvPointVgmForCoKriging(aod.list, model="Exp", ngroup=12, rd=0.75,
                                     fixed.range = 9e4)
 
 ## part 3: area-to-area Kriging prediction ----
-ataStartCluster()
+ataStartCluster(2) # parallel with 2 nodes
 pred.ataok <- ataKriging(aod10.d, grid.pred, vgm.ck$aod10, showProgress = TRUE)
 pred.ataok_combine <- ataKriging(aod.combine, grid.pred, vgm.ok_combine,
                                  showProgress = TRUE)
