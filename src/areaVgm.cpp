@@ -3,9 +3,9 @@
 #include <math.h>
 
 //OpenMP is not supported for macOS since R 4.0.0
-#ifndef __APPLE__
+#ifdef _OPENMP
 #include <omp.h>
-#endif // !__APPLE__
+#endif // !_OPENMP
 
 using namespace Rcpp;
 
@@ -26,7 +26,7 @@ std::vector<NumericMatrix> g_areaWeightByPtsX, g_areaWeightByPtsY, g_areaWeightB
 inline NumericVector CalcVariogramSimple(const Vgm& vgm, const NumericVector& dist, bool bCov = false)
 {
 	int nSize = dist.size();
-	NumericVector semivar(nSize);	
+	NumericVector semivar(nSize);
 	switch (vgm.model)
 	{
 	case 1: // Exp
@@ -55,7 +55,7 @@ inline NumericVector CalcVariogramSimple(const Vgm& vgm, const NumericVector& di
 	}
 
 	if (bCov) semivar = (vgm.nugget + vgm.psill) - semivar;
-	if (Rf_isMatrix(dist)) semivar.attr("dim") = dist.attr("dim");	
+	if (Rf_isMatrix(dist)) semivar.attr("dim") = dist.attr("dim");
 	return semivar;
 }
 
@@ -73,7 +73,7 @@ inline double CalcWeightedVariogram(const Vgm& vgm, const NumericVector& dist, c
 {
 	int nSize = dist.size();
 	double semivar = 0.0;
-	
+
 	switch (vgm.model)
 	{
 	case 1: // Exp
@@ -382,9 +382,13 @@ DataFrame svAreaCloudByPointVgm_gstat(const DataFrame& ptVgmModel)
 // [[Rcpp::export]]
 void ataSetNumberOfThreadsForOMP(int num)
 {
+#ifdef _OPENMP
 	int n = omp_get_num_procs();
 	if(num > 0 && num <= n)
 		omp_set_num_threads(num);
+#else
+  Rcout << "Not supported since OPENMP is not available!\n";
+#endif
 }
 
 
@@ -406,13 +410,13 @@ DataFrame svAreaCloudByPointVgm(const DataFrame& ptVgmModel)
 	for (i = 0; i <= g_numOfIdsX - 2; i++) {
 		indexI = (N * (N + 1) - (N - i) * (N + 1 - i)) - i;
 		g11 = CalcWeightedVariogram(vgm, g_areaDistByPtsX[indexI], g_areaWeightByPtsX[indexI]);
-		
+
 		for (j = i + 1; j <= g_numOfIdsX - 1; j++) {
 			indexJ = indexI + (j - i) * 2 - 1;
 			g22 = CalcWeightedVariogram(vgm, g_areaDistByPtsX[indexJ], g_areaWeightByPtsX[indexJ]);
-			g12 = CalcWeightedVariogram(vgm, g_areaDistByPtsX[indexJ + 1], g_areaWeightByPtsX[indexJ + 1]);	
+			g12 = CalcWeightedVariogram(vgm, g_areaDistByPtsX[indexJ + 1], g_areaWeightByPtsX[indexJ + 1]);
 			g = g12 - (g11 + g22) / 2.0;
-			
+
 			indexK = ((N * (N + 1) - (N - i) * (N + 1 - i))) / 2 + (j - i) - (i + 1);
 			dg(indexK, 0) = g_areaDistByCentroidX(i, j);
 			dg(indexK, 1) = g;
@@ -474,11 +478,11 @@ DataFrame crossSvAreaCloudByPointVgm(const DataFrame& xyPointCrossVgm)
 	Vgm vgmXY = VgmFromDf(xyPointCrossVgm);
 
 	NumericVector mSvar;
-	double g11, g12, g22, g;	
+	double g11, g12, g22, g;
 	int i, j, indexJ;
 
 #pragma omp parallel for private(i, j, indexJ, g11, g12, g22, g)
-	for (i = 0; i < g_numOfIdsX; i++) {		
+	for (i = 0; i < g_numOfIdsX; i++) {
 		g11 = CalcWeightedVariogram(g_ptVgmModelX, g_areaDistByPtsX[i], g_areaWeightByPtsX[i]);
 
 		for (j = 0; j < g_numOfIdsY; j++) {
@@ -486,7 +490,7 @@ DataFrame crossSvAreaCloudByPointVgm(const DataFrame& xyPointCrossVgm)
 
 			indexJ = i * g_numOfIdsX + j;
 			g12 = CalcWeightedVariogram(vgmXY, g_areaDistByPtsXY[indexJ], g_areaWeightByPtsXY[indexJ]);
-			g = g12 - (g11 + g22) / 2.0;			
+			g = g12 - (g11 + g22) / 2.0;
 
 			dg(indexJ, 0) = g_areaDistByCentroidXY(i, j);
 			dg(indexJ, 1) = g;
