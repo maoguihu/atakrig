@@ -638,6 +638,16 @@ fitPointVgm <- function(vgmdef, model=c("Sph","Exp","Gau"), fit.nugget=TRUE, fix
       if(is.null(fit.method)) fit.method <- 7
       tryCatch(suppressWarnings(mfit <- fit.variogram(vgmdef, initSv, fit.ranges = is.na(fixed.range), fit.method = fit.method)),
                error=function(e) mfit <<- NULL)
+      if(is.null(mfit) || (!is.null(mfit) && any(c(mfit$psill, mfit$range) < 0))) {
+        # remove Odds
+        gmn <- mean(vgmdef$gamma)
+        gst <- sd(vgmdef$gamma)
+        indx <- (vgmdef$gamma > gmn+3*gst) | (vgmdef$gamma < gmn-3*gst)
+        if(sum(indx) > 0) {
+          tryCatch(suppressWarnings(mfit <- fit.variogram(vgmdef[!indx,], initSv, fit.ranges = is.na(fixed.range), fit.method = fit.method)),
+                   error=function(e) mfit <<- NULL)
+        }
+      }
       if(is.null(mfit)) next
 
       sserr <- attr(mfit, "SSErr")

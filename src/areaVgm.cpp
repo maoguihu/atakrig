@@ -477,8 +477,6 @@ void crossSvAreaCloudByPointVgmInit(
 // [[Rcpp::export]]
 DataFrame crossSvAreaCloudByPointVgm(const DataFrame& xyPointCrossVgm)
 {
-try
-{
 	NumericMatrix dg(g_numOfIdsX * g_numOfIdsX, 2);
 	Vgm vgmXY = VgmFromDf(xyPointCrossVgm);
 
@@ -493,7 +491,7 @@ try
 		for (j = 0; j < g_numOfIdsY; j++) {
 			g22 = CalcWeightedVariogram(g_ptVgmModelY, g_areaDistByPtsY[j], g_areaWeightByPtsY[j]);
 
-			indexJ = i * g_numOfIdsX + j;
+			indexJ = i * g_numOfIdsY + j;
 			g12 = CalcWeightedVariogram(vgmXY, g_areaDistByPtsXY[indexJ], g_areaWeightByPtsXY[indexJ]);
 			g = g12 - (g11 + g22) / 2.0;
 
@@ -505,12 +503,6 @@ try
 	DataFrame df = as<DataFrame>(dg);
 	df.names() = CharacterVector::create("dist", "gamma");
 	return df;
-}
-catch (exception& e)
-{
-	Rcout << e.what() << '\n';
-	return R_NilValue;
-}
 }
 
 

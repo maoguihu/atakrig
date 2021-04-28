@@ -35,7 +35,7 @@ for \code{deconvPointVgmForCoKriging}, x is a list of \code{discreteArea} object
 max iteration number of deconvolution.
 }
   \item{fixed.range}{
-variogram range fixed or not.
+a fixed variogram range for deconvoluted point-scale variogram.
 }
   \item{longlat}{
 indicator whether coordinates are longitude/latitude.
@@ -74,7 +74,7 @@ Goovaerts, P., 2008. Kriging and semivariogram deconvolution in the presence of 
 \link{ataKriging},\link{ataCoKriging}
 }
 \examples{
-\dontshow{
+\donttest{
 library(atakrig)
 library(raster)
 

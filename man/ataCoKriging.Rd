@@ -81,26 +81,6 @@ Isaaks, E. H., Srivastava, R. M., 1989. An introduction to applied geostatistics
 \link{deconvPointVgmForCoKriging}, \link{deconvPointCrossVgm}, \link{ataKriging}
 }
 \examples{
-%%\dontshow{
-\donttest{
-library(atakrig)
-library(raster)
-
-rpath <- system.file("extdata", package="atakrig")
-aod3k <- raster(file.path(rpath, "MOD04_3K_A2017042.tif"))
-aod3k <- crop(aod3k, extent(aod3k, 10,15,20,25))
-
-aod3k.d <- discretizeRaster(aod3k, 1500)
-grid.pred <- discretizeRaster(aod3k, 1500, type = "all")
-
-aod.list <- list(aod3k=aod3k.d, aod10=aod3k.d)
-sv.ck <- deconvPointVgmForCoKriging(aod.list, model="Exp", ngroup=12, rd=0.8,
-                                    fixed.range = 4e3, fig = FALSE)
-
-pred.atack <- ataCoKriging(aod.list, unknownVarId="aod10", unknown=grid.pred,
-                           ptVgms=sv.ck, oneCondition=TRUE, auxRatioAdj=TRUE, showProgress = FALSE)
-
-}
 \donttest{
 library(atakrig)
 library(raster)
