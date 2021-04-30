@@ -4,7 +4,7 @@ importFrom(Rcpp, evalCpp)
 importFrom("methods", "is")
 importFrom("sp", "SpatialPoints", "CRS", "proj4string")
 importFrom("graphics", "layout", "legend", "lines", "mtext", "par", "plot", "plot.new")
-importFrom("stats", "median")
+importFrom("stats", "median", "sd")
 importFrom("utils", "hasName", "setTxtProgressBar", "txtProgressBar")
 
 export(
