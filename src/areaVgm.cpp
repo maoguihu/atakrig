@@ -30,6 +30,7 @@ inline NumericVector CalcVariogramSimple(const Vgm& vgm, const NumericVector& di
 {
 	int nSize = dist.size();
 	NumericVector semivar(nSize);
+
 	switch (vgm.model)
 	{
 	case 1: // Exp
@@ -41,7 +42,7 @@ inline NumericVector CalcVariogramSimple(const Vgm& vgm, const NumericVector& di
 	case 2: // Gau
 		//semivar = vgm.nugget + vgm.psill * (1 - exp(-pow(dist, 2) / (vgm.range * vgm.range)));
 		for (int i = 0; i < nSize; i++)
-			semivar = vgm.nugget + vgm.psill * (1 - exp(-(dist[i] * dist[i]) / (vgm.range * vgm.range)));
+			semivar[i] = vgm.nugget + vgm.psill * (1 - exp(-(dist[i] * dist[i]) / (vgm.range * vgm.range)));
 		break;
 	case 3: //Sph
 		//semivar = vgm.nugget + vgm.psill * (1.5 * dist / vgm.range - 0.5 * pow(dist / vgm.range, 3));
@@ -138,6 +139,7 @@ Vgm VgmFromDf(const DataFrame& vgmDf) {
 RObject variogramLineSimple(const DataFrame& vgmModel, const NumericVector& dist, bool bCov = false)
 {
 	Vgm vgm = VgmFromDf(vgmModel);
+  //Rcout << vgm.model << ", " << vgm.nugget << ", " << vgm.psill << ", " << vgm.range << "\n";
 	NumericVector semivar = CalcVariogramSimple(vgm, dist, bCov);
 	if (bCov || Rf_isMatrix(dist))
 		return semivar;
